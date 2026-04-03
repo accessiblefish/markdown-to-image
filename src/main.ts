@@ -780,7 +780,7 @@ async function renderToPages(markdown: string, config: LayoutConfig): Promise<HT
         const font = getFontString(config, 'body')
         const items = block.items || []
         const bulletWidth = 36
-        const bulletMargin = 8
+        const bulletMargin = 12
         const isTask = block.type === 'taskList'
         const listLineHeight = config.lineHeight * 0.85
 
