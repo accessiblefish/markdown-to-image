@@ -4,15 +4,16 @@
 
 import type { Block, LayoutConfig } from '../../types'
 import type { Theme } from '../../config/themes'
-import { prepareWithSegments, layoutNextLine } from '@chenglou/pretext'
-import { getFontString, prepareText, hasMoreText } from '../utils/fonts'
+import { getFontString } from '../utils/fonts'
 import { getContentRect, getAvailableHeight, needsNewPage } from '../utils/layout'
 import { renderTextLine, renderCodeBlock } from '../utils/canvas'
 import { CODE_PADDING } from '../../config/constants'
+import { highlight, getTokenColor, type Token } from '../utils/syntax-highlighter'
 
 interface CodeLine {
   text: string
   width: number
+  tokens?: Token[]
 }
 
 /**
@@ -31,8 +32,11 @@ export function renderCode(
   const codeLineHeight = config.lineHeight * 0.9
   const codeContentWidth = contentRect.width - CODE_PADDING.x * 2
 
-  // 预计算所有行
-  const allLines = calculateCodeLines(block.content, font, codeContentWidth)
+  // 语法高亮
+  const tokens = highlight(block.content, block.language)
+  
+  // 预计算所有行（带语法高亮信息）
+  const allLines = calculateCodeLinesWithHighlight(tokens, font, codeContentWidth)
   const totalHeight = allLines.length * codeLineHeight + CODE_PADDING.y * 2
 
   // 检查是否需要新页面
@@ -73,7 +77,14 @@ export function renderCode(
       const line = pageLines[i]
       if (!line) continue
       const y = blockStartY + CODE_PADDING.y + i * codeLineHeight
-      renderTextLine(ctx, line.text, contentRect.x + CODE_PADDING.x, y + codeLineHeight * 0.75, theme.codeText, font)
+      const x = contentRect.x + CODE_PADDING.x
+      
+      // 如果有语法高亮token，使用彩色渲染
+      if (line.tokens && line.tokens.length > 0) {
+        renderColoredTokens(ctx, line.tokens, x, y + codeLineHeight * 0.75, font, theme.codeBg === '#1e293b')
+      } else {
+        renderTextLine(ctx, line.text, x, y + codeLineHeight * 0.75, theme.codeText, font)
+      }
     }
 
     lineIndex += pageLines.length
@@ -92,27 +103,110 @@ export function renderCode(
 }
 
 /**
- * 计算代码行
+ * 计算带语法高亮的代码行
  */
-function calculateCodeLines(
-  content: string,
+function calculateCodeLinesWithHighlight(
+  tokens: Token[],
   font: string,
   maxWidth: number
 ): CodeLine[] {
-  const prepared = prepareWithSegments(content, font, { whiteSpace: 'pre-wrap' })
-
   const lines: CodeLine[] = []
-  let cursor: { segmentIndex: number; graphemeIndex: number } = { segmentIndex: 0, graphemeIndex: 0 }
-
-  while (hasMoreText(prepared, cursor)) {
-    const line = layoutNextLine(prepared, cursor, maxWidth)
-    if (!line) break
-
-    lines.push({ text: line.text, width: line.width })
-    cursor = line.end
+  let currentLineTokens: Token[] = []
+  let currentLineWidth = 0
+  
+  // 创建临时 canvas 用于测量
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')!
+  ctx.font = font
+  
+  const flushLine = () => {
+    if (currentLineTokens.length > 0) {
+      lines.push({
+        text: currentLineTokens.map(t => t.text).join(''),
+        width: currentLineWidth,
+        tokens: [...currentLineTokens]
+      })
+      currentLineTokens = []
+      currentLineWidth = 0
+    }
   }
-
+  
+  for (const token of tokens) {
+    const tokenLines = token.text.split('\n')
+    
+    for (let i = 0; i < tokenLines.length; i++) {
+      if (i > 0) {
+        // 遇到换行符，结束当前行
+        flushLine()
+      }
+      
+      const text = tokenLines[i]
+      if (!text) continue
+      
+      const textWidth = ctx.measureText(text).width
+      
+      // 检查是否需要换行
+      if (currentLineWidth + textWidth > maxWidth && currentLineWidth > 0) {
+        flushLine()
+      }
+      
+      // 处理长文本自动换行
+      if (textWidth > maxWidth) {
+        let start = 0
+        while (start < text.length) {
+          let end = text.length
+          while (end > start) {
+            const subText = text.slice(start, end)
+            const subWidth = ctx.measureText(subText).width
+            if (subWidth <= maxWidth) {
+              currentLineTokens.push({ type: token.type, text: subText })
+              currentLineWidth += subWidth
+              flushLine()
+              start = end
+              break
+            }
+            end--
+          }
+          if (end === start) {
+            // 单个字符都放不下，强制添加
+            const char = text[start]
+            currentLineTokens.push({ type: token.type, text: char })
+            currentLineWidth += ctx.measureText(char).width
+            flushLine()
+            start++
+          }
+        }
+      } else {
+        currentLineTokens.push({ type: token.type, text })
+        currentLineWidth += textWidth
+      }
+    }
+  }
+  
+  flushLine()
   return lines
+}
+
+/**
+ * 渲染彩色标记
+ */
+function renderColoredTokens(
+  ctx: CanvasRenderingContext2D,
+  tokens: Token[],
+  x: number,
+  y: number,
+  font: string,
+  isDark: boolean
+): void {
+  ctx.font = font
+  ctx.textBaseline = 'alphabetic'
+  
+  let currentX = x
+  for (const token of tokens) {
+    ctx.fillStyle = getTokenColor(token.type, isDark)
+    ctx.fillText(token.text, currentX, y)
+    currentX += ctx.measureText(token.text).width
+  }
 }
 
 /**
@@ -128,6 +222,8 @@ export function measureCode(
   const codeLineHeight = config.lineHeight * 0.9
   const codeContentWidth = contentRect.width - CODE_PADDING.x * 2
 
-  const allLines = calculateCodeLines(block.content, font, codeContentWidth)
+  // 使用语法高亮计算行数
+  const tokens = highlight(block.content, block.language)
+  const allLines = calculateCodeLinesWithHighlight(tokens, font, codeContentWidth)
   return allLines.length * codeLineHeight + CODE_PADDING.y * 2 + config.lineHeight * 0.4
 }
