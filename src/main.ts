@@ -435,7 +435,7 @@ async function renderToPages(markdown: string, config: LayoutConfig): Promise<HT
     renderBackground(ctx, config)
 
     ctx.fillStyle = theme.textMuted
-    ctx.font = `12px ${FONTS.body}`
+    ctx.font = `20px ${FONTS.body}`
     ctx.textAlign = 'right'
     ctx.fillText(`- ${pages.length + 1} -`, config.pageWidth - config.padding.right, config.pageHeight - 40)
     ctx.textAlign = 'left'
