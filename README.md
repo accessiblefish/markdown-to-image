@@ -16,6 +16,12 @@ bun dev
 
 Open your browser and navigate to `http://localhost:3000`.
 
+## Preview
+
+![Page 1](./docs/page-1.png)
+![Page 2](./docs/page-2.png)
+![Page 3](./docs/page-3.png)
+
 ## Features
 
 - ✨ Clean, readable typography powered by Pretext
