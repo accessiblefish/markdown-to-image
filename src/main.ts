@@ -952,7 +952,7 @@ function updatePreview() {
     pageHeight: parseInt(pageHeightInput.value) || DEFAULT_PAGE_HEIGHT,
     padding: PADDING,
     fontSize: parseInt(fontSizeSelect.value) || 34,
-    lineHeight: (parseInt(fontSizeSelect.value) || 34) * 1.6,
+    lineHeight: (parseInt(fontSizeSelect.value) || 34) * 1.5,
     theme: themeSelect.value as ThemeKey,
   }
 
