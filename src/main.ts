@@ -435,9 +435,9 @@ async function renderToPages(markdown: string, config: LayoutConfig): Promise<HT
     renderBackground(ctx, config)
 
     ctx.fillStyle = theme.textMuted
-    ctx.font = `20px ${FONTS.body}`
+    ctx.font = `25px ${FONTS.body}`
     ctx.textAlign = 'right'
-    ctx.fillText(`- ${pages.length + 1} -`, config.pageWidth - config.padding.right, config.pageHeight - 40)
+    ctx.fillText(`- ${pages.length + 1} -`, config.pageWidth - config.padding.right, config.pageHeight - 55)
     ctx.textAlign = 'left'
 
     pages.push(canvas)
@@ -923,6 +923,12 @@ function updatePreview() {
     return
   }
 
+  // Save editor state to prevent scrolling jump
+  const editorScrollTop = editor.scrollTop
+  const editorSelectionStart = editor.selectionStart
+  const editorSelectionEnd = editor.selectionEnd
+  const isEditorFocused = document.activeElement === editor
+
   const config: LayoutConfig = {
     pageWidth: parseInt(pageWidthInput.value) || DEFAULT_PAGE_WIDTH,
     pageHeight: parseInt(pageHeightInput.value) || DEFAULT_PAGE_HEIGHT,
@@ -951,6 +957,13 @@ function updatePreview() {
         wrapper.appendChild(canvas)
         previewContainer.appendChild(wrapper)
       })
+
+      // Restore editor state
+      editor.scrollTop = editorScrollTop
+      if (isEditorFocused) {
+        editor.focus()
+        editor.setSelectionRange(editorSelectionStart, editorSelectionEnd)
+      }
     })
   })
 }
