@@ -907,27 +907,88 @@ async function renderToPages(markdown: string, config: LayoutConfig): Promise<HT
 
 const SAMPLE_MARKDOWN = `# Markdown to Image
 
-Convert your Markdown to beautiful images with **customizable themes** and *perfect typography*.
+A web-based tool that converts Markdown to beautiful images using Canvas, powered by the Pretext layout engine for precise typography.
 
-## Features
+## Headings
 
-- Clean, readable output
-- Multiple themes: light, dark, sepia
-- Code blocks with syntax highlighting
-- Support for lists, quotes, and tables
+# Heading 1
+## Heading 2
+### Heading 3
+#### Heading 4
 
-## Code Example
+## Text Formatting
+
+Regular paragraph with **bold text**, *italic text*, and \`inline code\`. You can also use ~~strikethrough~~ and combine **bold and _italic_**.
+
+## Links
+
+Visit [Pretext](https://github.com/chenglou/pretext) for the layout engine, or [GitHub](https://github.com) for code hosting.
+
+## Lists
+
+### Unordered List
+
+- First item
+- Second item
+  - Nested item A
+  - Nested item B
+- Third item
+
+### Ordered List
+
+1. First step
+2. Second step
+3. Third step
+
+### Task List
+
+- [x] Completed task
+- [ ] Pending task
+- [ ] Another pending task
+
+## Code Blocks
 
 \`\`\`javascript
-const greeting = "Hello, World!";
-console.log(greeting);
+function greet(name) {
+  const message = \`Hello, \${name}!\`;
+  console.log(message);
+  return message;
+}
+
+greet('World');
 \`\`\`
 
-> "Simplicity is the ultimate sophistication"
+## Blockquotes
+
+> "The best way to predict the future is to invent it."
+> — Alan Kay
+
+## Tables
+
+| Feature | Status | Priority |
+|---------|--------|----------|
+| Headings | ✅ | High |
+| Lists | ✅ | High |
+| Code Blocks | ✅ | High |
+| Tables | ✅ | Medium |
+
+## Horizontal Rule
 
 ---
 
-Made with ❤️ using Canvas`
+## Mixed Content
+
+Here's a paragraph with **bold**, *italic*, \`code\`, and a [link](https://example.com). Followed by a list:
+
+- Item with **bold**
+- Item with *italic*
+- Item with \`code\`
+
+> A blockquote can contain **formatted** text and even \`code\`.
+
+---
+
+Made with ❤️ using Pretext`
 
 let currentCanvases: HTMLCanvasElement[] = []
 let debounceTimer: number | null = null
