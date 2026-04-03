@@ -18,18 +18,13 @@ Open your browser and navigate to `http://localhost:3000`.
 
 ## Preview
 
-![Page 1](./docs/page-1.png)
-![Page 2](./docs/page-2.png)
-![Page 3](./docs/page-3.png)
-
-## Features
-
-- ✨ Clean, readable typography powered by Pretext
-- 🎨 Multiple themes: Light, Dark, Sepia
-- 💻 Code blocks with proper syntax highlighting
-- 📋 Support for lists, blockquotes, tables, and more
-- 🖼️ Automatic pagination for long content
-- 📥 Download as PNG
+<table>
+  <tr>
+    <td width="33%"><img src="./docs/page-1.png" alt="Page 1" /></td>
+    <td width="33%"><img src="./docs/page-2.png" alt="Page 2" /></td>
+    <td width="33%"><img src="./docs/page-3.png" alt="Page 3" /></td>
+  </tr>
+</table>
 
 ## Build
 
