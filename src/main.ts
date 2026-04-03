@@ -2,1398 +2,154 @@
  * Markdown to Image Generator
  *
  * Convert Markdown to beautiful images using Canvas
- * Styled with ai_studio_code.css
+ * Built with modular architecture for maintainability
  */
 
+import { renderToPages } from './renderer'
 import {
-  prepareWithSegments,
-  layoutNextLine,
-  type LayoutCursor,
-  type PreparedTextWithSegments,
-} from '@chenglou/pretext'
-
-import { micromark } from 'micromark'
-import { gfm, gfmHtml } from 'micromark-extension-gfm'
-import JSZip from 'jszip'
-
-// ==================== 配置常量 ====================
-const DEFAULT_PAGE_WIDTH = 1080
-const DEFAULT_PAGE_HEIGHT = 1440
-const PADDING = { top: 100, right: 90, bottom: 100, left: 90 }
-
-const FONTS = {
-  body: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif',
-  mono: '"SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace',
-}
-
-// 基于 ai_studio_code.css 的颜色方案
-const THEMES = {
-  light: {
-    bg: '#ffffff',
-    text: '#2c3e50',
-    textHeading: '#1a1a1a',
-    textMuted: '#64748b',
-    border: '#e2e8f0',
-    codeBg: '#1e293b',
-    codeText: '#f8fafc',
-    inlineCodeBg: '#f3f4f6',
-    inlineCodeText: '#eb5757',
-    quoteBg: '#f8fafc',
-    quoteBorder: '#e2e8f0',
-    link: '#3498db',
-    accent: '#3498db',
-  },
-  dark: {
-    bg: '#0f172a',
-    text: '#e2e8f0',
-    textHeading: '#f8fafc',
-    textMuted: '#94a3b8',
-    border: '#334155',
-    codeBg: '#1e293b',
-    codeText: '#f8fafc',
-    inlineCodeBg: '#1e293b',
-    inlineCodeText: '#f472b6',
-    quoteBg: '#1e293b',
-    quoteBorder: '#475569',
-    link: '#60a5fa',
-    accent: '#60a5fa',
-  },
-  sepia: {
-    bg: '#f5f0e6',
-    text: '#433422',
-    textHeading: '#2c2416',
-    textMuted: '#8b7355',
-    border: '#d4c8b8',
-    codeBg: '#2d2a26',
-    codeText: '#f5f0e6',
-    inlineCodeBg: '#ebe4d6',
-    inlineCodeText: '#b45309',
-    quoteBg: '#faf8f3',
-    quoteBorder: '#d4c8b8',
-    link: '#b45309',
-    accent: '#b45309',
-  },
-}
-
-type ThemeKey = keyof typeof THEMES
-
-type InlineElement =
-  | { type: 'text'; content: string }
-  | { type: 'code'; content: string }
-  | { type: 'strong'; content: string }
-  | { type: 'em'; content: string }
-  | { type: 'link'; content: string; href: string }
-
-type BlockType =
-  | 'heading'
-  | 'paragraph'
-  | 'code'
-  | 'blockquote'
-  | 'list'
-  | 'listItem'
-  | 'hr'
-  | 'table'
-  | 'taskList'
-
-interface Block {
-  type: BlockType
-  content: string
-  inlineElements?: InlineElement[]
-  level?: number
-  language?: string
-  ordered?: boolean
-  items?: Array<{ text: string; checked?: boolean; inlineElements?: InlineElement[] }>
-  rows?: Array<Array<string>>
-}
-
-interface LayoutConfig {
-  pageWidth: number
-  pageHeight: number
-  padding: typeof PADDING
-  fontSize: number
-  lineHeight: number
-  theme: ThemeKey
-}
-
-// ==================== DOM 元素 ====================
-const editor = document.getElementById('editor') as HTMLTextAreaElement
-const previewContainer = document.getElementById('previewContainer') as HTMLDivElement
-const charCount = document.getElementById('charCount') as HTMLSpanElement
-const btnLoadSample = document.getElementById('btnLoadSample') as HTMLButtonElement
-const btnClear = document.getElementById('btnClear') as HTMLButtonElement
-const btnDownloadAll = document.getElementById('btnDownloadAll') as HTMLButtonElement
-const themeSelect = document.getElementById('themeSelect') as HTMLSelectElement
-const fontSizeSelect = document.getElementById('fontSizeSelect') as HTMLSelectElement
-const pageWidthInput = document.getElementById('pageWidth') as HTMLInputElement
-const pageHeightInput = document.getElementById('pageHeight') as HTMLInputElement
-
-// ==================== Markdown 解析 ====================
-
-function parseMarkdownToBlocks(markdown: string): Block[] {
-  const html = micromark(markdown, {
-    extensions: [gfm()],
-    htmlExtensions: [gfmHtml()],
-  })
-
-  const temp = document.createElement('div')
-  temp.innerHTML = html
-
-  const blocks: Block[] = []
-
-  function extractBlocks(node: Element) {
-    const tagName = node.tagName.toLowerCase()
-
-    switch (tagName) {
-      case 'h1':
-      case 'h2':
-      case 'h3':
-      case 'h4':
-      case 'h5':
-      case 'h6':
-        blocks.push({
-          type: 'heading',
-          content: node.textContent || '',
-          level: parseInt(tagName[1]),
-        })
-        break
-
-      case 'p': {
-        const inlineElements = extractInlineElements(node)
-        blocks.push({
-          type: 'paragraph',
-          content: node.textContent || '',
-          inlineElements,
-        })
-        break
-      }
-
-      case 'pre':
-        const code = node.querySelector('code')
-        const lang = code?.className?.match(/language-(\w+)/)?.[1] || ''
-        blocks.push({
-          type: 'code',
-          content: code?.textContent || node.textContent || '',
-          language: lang,
-        })
-        break
-
-      case 'blockquote': {
-        const p = node.querySelector('p')
-        const targetNode = p || node
-        const inlineElements = extractInlineElements(targetNode)
-        blocks.push({
-          type: 'blockquote',
-          content: targetNode.textContent || '',
-          inlineElements,
-        })
-        break
-      }
-
-      case 'ul':
-      case 'ol': {
-        const items: Array<{ text: string; checked?: boolean; inlineElements?: InlineElement[] }> = []
-        node.querySelectorAll('li').forEach(li => {
-          const checkbox = li.querySelector('input[type="checkbox"]')
-          const inlineElements = extractInlineElements(li)
-          if (checkbox) {
-            items.push({
-              text: li.textContent?.replace(/^\s*\[.?\]\s*/, '') || '',
-              checked: (checkbox as HTMLInputElement).checked,
-              inlineElements,
-            })
-          } else {
-            items.push({ text: li.textContent || '', inlineElements })
-          }
-        })
-        blocks.push({
-          type: items.some(i => i.checked !== undefined) ? 'taskList' : 'list',
-          content: '',
-          ordered: tagName === 'ol',
-          items,
-        })
-        break
-      }
-
-      case 'hr':
-        blocks.push({ type: 'hr', content: '' })
-        break
-
-      case 'table':
-        const rows: Array<Array<string>> = []
-        node.querySelectorAll('tr').forEach(tr => {
-          const cells: string[] = []
-          tr.querySelectorAll('td, th').forEach(cell => {
-            cells.push(cell.textContent || '')
-          })
-          if (cells.length) rows.push(cells)
-        })
-        blocks.push({ type: 'table', content: '', rows })
-        break
-
-      case 'div':
-      case 'section':
-      case 'article':
-        Array.from(node.children).forEach(child => extractBlocks(child))
-        break
-
-      default:
-        if (node.textContent?.trim()) {
-          blocks.push({
-            type: 'paragraph',
-            content: node.textContent,
-          })
-        }
-    }
-  }
-
-  Array.from(temp.children).forEach(child => extractBlocks(child))
-
-  return blocks
-}
-
-function extractInlineElements(node: Element): InlineElement[] {
-  const elements: InlineElement[] = []
-
-  function walk(node: Node) {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const text = node.textContent || ''
-      if (text && !/^\s*$/.test(text)) {
-        elements.push({ type: 'text', content: text })
-      } else if (text && elements.length > 0) {
-        elements.push({ type: 'text', content: ' ' })
-      }
-    } else if (node.nodeType === Node.ELEMENT_NODE) {
-      const el = node as Element
-      const tagName = el.tagName.toLowerCase()
-
-      switch (tagName) {
-        case 'code':
-          elements.push({ type: 'code', content: el.textContent || '' })
-          break
-        case 'strong':
-        case 'b':
-          elements.push({ type: 'strong', content: el.textContent || '' })
-          break
-        case 'em':
-        case 'i':
-          elements.push({ type: 'em', content: el.textContent || '' })
-          break
-        case 'a':
-          elements.push({
-            type: 'link',
-            content: el.textContent || '',
-            href: el.getAttribute('href') || ''
-          })
-          break
-        default:
-          el.childNodes.forEach(child => walk(child))
-      }
-    }
-  }
-
-  node.childNodes.forEach(child => walk(child))
-  return elements
-}
-
-// ==================== 字体与样式 ====================
-
-function getFontString(config: LayoutConfig, type: 'body' | 'heading' | 'code' | 'inlineCode' | 'small' = 'body', level = 1): string {
-  const { fontSize } = config
-
-  switch (type) {
-    case 'heading':
-      const sizes = [
-        fontSize * 1.85,
-        fontSize * 1.55,
-        fontSize * 1.25,
-        fontSize * 1.1,
-        fontSize * 1.05,
-        fontSize,
-      ]
-      return `600 ${sizes[level - 1]}px ${FONTS.body}`
-    case 'code':
-      return `${Math.round(fontSize * 0.9)}px ${FONTS.mono}`
-    case 'inlineCode':
-      return `${Math.round(fontSize * 0.875)}px ${FONTS.mono}`
-    case 'small':
-      return `400 ${Math.round(fontSize * 0.875)}px ${FONTS.body}`
-    default:
-      return `400 ${Math.round(fontSize)}px ${FONTS.body}`
-  }
-}
-
-function prepareText(text: string, font: string, preserveWhitespace = false): PreparedTextWithSegments {
-  return prepareWithSegments(text, font, preserveWhitespace ? { whiteSpace: 'pre-wrap' } : undefined)
-}
-
-function getContentRect(config: LayoutConfig) {
-  const { pageWidth, pageHeight, padding } = config
-  return {
-    x: padding.left,
-    y: padding.top,
-    width: pageWidth - padding.left - padding.right,
-    height: pageHeight - padding.top - padding.bottom,
-  }
-}
-
-function layoutColumn(
-  prepared: PreparedTextWithSegments,
-  startCursor: LayoutCursor,
-  config: LayoutConfig,
-  yStart: number,
-  availableHeight: number,
-  isCode = false,
-) {
-  const contentRect = getContentRect(config)
-  const lineHeight = isCode ? config.lineHeight * 0.95 : config.lineHeight
-
-  let cursor: LayoutCursor = startCursor
-  let lineTop = yStart
-  const lines: Array<{ x: number; y: number; text: string; width: number }> = []
-
-  while (true) {
-    if (lineTop + lineHeight > yStart + availableHeight) break
-
-    const line = layoutNextLine(prepared, cursor, contentRect.width)
-    if (line === null) break
-
-    lines.push({
-      x: contentRect.x,
-      y: lineTop,
-      text: line.text,
-      width: line.width,
-    })
-
-    cursor = line.end
-    lineTop += lineHeight
-  }
-
-  return { lines, cursor, finalY: lineTop }
-}
-
-function hasMoreText(prepared: PreparedTextWithSegments, cursor: LayoutCursor): boolean {
-  return cursor.segmentIndex < prepared.segments.length - 1 ||
-    (cursor.segmentIndex === prepared.segments.length - 1 &&
-     cursor.graphemeIndex < prepared.segments[cursor.segmentIndex]?.length)
-}
-
-// ==================== Canvas 渲染 ====================
-
-function createCanvas(width: number, height: number) {
-  const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
-  canvas.className = 'page-canvas'
-  canvas.style.width = `${width * 0.35}px`
-  canvas.style.height = `${height * 0.35}px`
-
-  const ctx = canvas.getContext('2d')!
-  return { canvas, ctx }
-}
-
-function renderBackground(ctx: CanvasRenderingContext2D, config: LayoutConfig) {
-  const theme = THEMES[config.theme]
-  ctx.fillStyle = theme.bg
-  ctx.fillRect(0, 0, config.pageWidth, config.pageHeight)
-}
-
-function renderTextLine(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, color: string, font: string) {
-  ctx.fillStyle = color
-  ctx.font = font
-  ctx.textBaseline = 'alphabetic'
-  ctx.fillText(text, x, y)
-}
-
-function renderBlockQuote(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, theme: typeof THEMES.light) {
-  ctx.fillStyle = theme.quoteBg
-  ctx.fillRect(x, y, width, height)
-  ctx.fillStyle = theme.quoteBorder
-  ctx.fillRect(x, y, 4, height)
-}
-
-function renderCodeBlock(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, theme: typeof THEMES.light) {
-  ctx.fillStyle = theme.codeBg
-  ctx.beginPath()
-  ctx.roundRect(x, y, width, height, 8)
-  ctx.fill()
-}
-
-function renderHorizontalRule(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, theme: typeof THEMES.light) {
-  ctx.strokeStyle = theme.border
-  ctx.lineWidth = 1
-  ctx.beginPath()
-  ctx.moveTo(x, y)
-  ctx.lineTo(x + width, y)
-  ctx.stroke()
-}
-
-// ==================== 主渲染逻辑 ====================
-
-async function renderToPages(markdown: string, config: LayoutConfig): Promise<HTMLCanvasElement[]> {
-  const blocks = parseMarkdownToBlocks(markdown)
-  const pages: HTMLCanvasElement[] = []
-  const theme = THEMES[config.theme]
-
-  let currentCanvas: HTMLCanvasElement | null = null
-  let currentCtx: CanvasRenderingContext2D | null = null
-  let currentY = config.padding.top
-
-  function startNewPage() {
-    const { canvas, ctx } = createCanvas(config.pageWidth, config.pageHeight)
-    renderBackground(ctx, config)
-
-    ctx.fillStyle = theme.textMuted
-    ctx.font = `25px ${FONTS.body}`
-    ctx.textAlign = 'right'
-    ctx.fillText(`- ${pages.length + 1} -`, config.pageWidth - config.padding.right, config.pageHeight - 55)
-    ctx.textAlign = 'left'
-
-    pages.push(canvas)
-    currentCanvas = canvas
-    currentCtx = ctx
-    currentY = config.padding.top
-
-    return { ctx, y: currentY }
-  }
-
-  let { ctx } = startNewPage()
-  const contentRect = getContentRect(config)
-
-  for (const block of blocks) {
-    const availableHeight = config.pageHeight - config.padding.bottom - currentY
-
-    switch (block.type) {
-      case 'heading': {
-        const level = block.level || 1
-        const font = getFontString(config, 'heading', level)
-        const prepared = prepareText(block.content, font)
-        const lineHeight = config.lineHeight * (1.6 - level * 0.1)
-
-        const estimatedHeight = lineHeight * 2
-        if (availableHeight < estimatedHeight && currentY > config.padding.top + 50) {
-          const next = startNewPage()
-          ctx = next.ctx
-          currentY = next.y
-        }
-
-        const result = layoutColumn(prepared, { segmentIndex: 0, graphemeIndex: 0 }, config, currentY, availableHeight)
-
-        for (const line of result.lines) {
-          renderTextLine(ctx, line.text, line.x, line.y + lineHeight * 0.8, theme.textHeading, font)
-        }
-
-        currentY = result.finalY + lineHeight * 0.6
-        break
-      }
-
-      case 'paragraph': {
-        const font = getFontString(config, 'body')
-        const codeFont = getFontString(config, 'inlineCode')
-        const boldFont = font.replace(/400|500/, '600')
-        const italicFont = font.replace('400', '400 italic')
-
-        const fragments: Array<{ text: string; style: 'normal' | 'code' | 'strong' | 'em' | 'link'; width: number }> = []
-
-        if (block.inlineElements && block.inlineElements.length > 0) {
-          for (const el of block.inlineElements) {
-            let text = el.content
-            let style: typeof fragments[0]['style']
-            switch (el.type) {
-              case 'code': style = 'code'; break
-              case 'strong': style = 'strong'; break
-              case 'em': style = 'em'; break
-              case 'link': style = 'link'; break
-              default: style = 'normal'
-            }
-            ctx.font = style === 'code' ? codeFont : (style === 'strong' ? boldFont : (style === 'em' ? italicFont : font))
-            const width = ctx.measureText(text).width
-            fragments.push({ text, style, width })
-          }
-        } else {
-          ctx.font = font
-          const width = ctx.measureText(block.content).width
-          fragments.push({ text: block.content, style: 'normal', width })
-        }
-
-        type Atom = { text: string; style: typeof fragments[0]['style']; width: number; isGlue: boolean }
-        const atoms: Atom[] = []
-
-        for (const frag of fragments) {
-          if (frag.style === 'normal') {
-            const parts = frag.text.split(/(\s+)/)
-            for (const part of parts) {
-              if (!part) continue
-              ctx.font = font
-              atoms.push({
-                text: part,
-                style: 'normal',
-                width: ctx.measureText(part).width,
-                isGlue: /^\s+$/.test(part)
-              })
-            }
-          } else {
-            ctx.font = frag.style === 'code' ? codeFont : (frag.style === 'strong' ? boldFont : (frag.style === 'em' ? italicFont : font))
-            atoms.push({
-              text: frag.text,
-              style: frag.style,
-              width: ctx.measureText(frag.text).width,
-              isGlue: false
-            })
-          }
-        }
-
-        let atomIndex = 0
-        while (atomIndex < atoms.length) {
-          const availableH = config.pageHeight - config.padding.bottom - currentY
-          if (availableH < config.lineHeight) {
-            const next = startNewPage()
-            ctx = next.ctx
-            currentY = next.y
-            continue
-          }
-
-          const lineAtoms: Atom[] = []
-          let lineWidth = 0
-          const maxWidth = contentRect.width
-
-          while (atomIndex < atoms.length && atoms[atomIndex]!.isGlue) {
-            atomIndex++
-          }
-
-          while (atomIndex < atoms.length) {
-            const atom = atoms[atomIndex]!
-
-            if (lineWidth + atom.width > maxWidth && lineAtoms.length > 0) {
-              break
-            }
-
-            lineAtoms.push(atom)
-            lineWidth += atom.width
-            atomIndex++
-
-            if (atom.isGlue && atomIndex < atoms.length) {
-              const nextAtom = atoms[atomIndex]!
-              if (lineWidth + nextAtom.width > maxWidth) {
-                lineAtoms.pop()
-                lineWidth -= atom.width
-                break
-              }
-            }
-          }
-
-          if (lineAtoms.length === 0) {
-            if (atomIndex < atoms.length) {
-              lineAtoms.push(atoms[atomIndex]!)
-              atomIndex++
-            } else {
-              break
-            }
-          }
-
-          while (lineAtoms.length > 0 && lineAtoms[lineAtoms.length - 1]!.isGlue) {
-            const removed = lineAtoms.pop()!
-            lineWidth -= removed.width
-          }
-
-          const lineY = currentY + config.lineHeight * 0.75
-          let x = contentRect.x
-
-          for (const atom of lineAtoms) {
-            switch (atom.style) {
-              case 'code': {
-                const inlineFontSize = config.fontSize * 0.875
-                const bgPaddingX = 4
-                const bgPaddingY = 3
-                const bgY = lineY - inlineFontSize * 0.75 - bgPaddingY
-
-                ctx.fillStyle = theme.inlineCodeBg
-                ctx.beginPath()
-                ctx.roundRect(x - bgPaddingX, bgY, atom.width + bgPaddingX * 2, inlineFontSize + bgPaddingY * 2, 4)
-                ctx.fill()
-
-                ctx.font = codeFont
-                ctx.fillStyle = theme.inlineCodeText
-                ctx.fillText(atom.text, x, lineY)
-                break
-              }
-              case 'strong': {
-                ctx.font = boldFont
-                ctx.fillStyle = theme.text
-                ctx.fillText(atom.text, x, lineY)
-                break
-              }
-              case 'em': {
-                ctx.font = italicFont
-                ctx.fillStyle = theme.text
-                ctx.fillText(atom.text, x, lineY)
-                break
-              }
-              case 'link': {
-                ctx.font = font
-                ctx.fillStyle = theme.link
-                ctx.fillText(atom.text, x, lineY)
-                ctx.strokeStyle = theme.link
-                ctx.lineWidth = 1
-                ctx.beginPath()
-                ctx.moveTo(x, lineY + 3)
-                ctx.lineTo(x + atom.width, lineY + 3)
-                ctx.stroke()
-                break
-              }
-              default: {
-                ctx.font = font
-                ctx.fillStyle = theme.text
-                ctx.fillText(atom.text, x, lineY)
-              }
-            }
-            x += atom.width
-          }
-
-          currentY += config.lineHeight
-        }
-
-        currentY += config.lineHeight * 0.5
-        break
-      }
-
-      case 'blockquote': {
-        const font = getFontString(config, 'body')
-        const codeFont = getFontString(config, 'inlineCode')
-        const boldFont = font.replace(/400|500/, '600')
-        const italicFont = font.replace('400', '400 italic')
-        const quotePadding = 24
-        const quoteContentWidth = contentRect.width - quotePadding * 2
-
-        // Process inline elements like paragraph
-        const fragments: Array<{ text: string; style: 'normal' | 'code' | 'strong' | 'em' | 'link'; width: number }> = []
-
-        if (block.inlineElements && block.inlineElements.length > 0) {
-          for (const el of block.inlineElements) {
-            let text = el.content
-            let style: typeof fragments[0]['style']
-            switch (el.type) {
-              case 'code': style = 'code'; break
-              case 'strong': style = 'strong'; break
-              case 'em': style = 'em'; break
-              case 'link': style = 'link'; break
-              default: style = 'normal'
-            }
-            ctx.font = style === 'code' ? codeFont : (style === 'strong' ? boldFont : (style === 'em' ? italicFont : font))
-            const width = ctx.measureText(text).width
-            fragments.push({ text, style, width })
-          }
-        } else {
-          ctx.font = font
-          const width = ctx.measureText(block.content).width
-          fragments.push({ text: block.content, style: 'normal', width })
-        }
-
-        type Atom = { text: string; style: typeof fragments[0]['style']; width: number; isGlue: boolean }
-        const atoms: Atom[] = []
-
-        for (const frag of fragments) {
-          if (frag.style === 'normal') {
-            const parts = frag.text.split(/(\s+)/)
-            for (const part of parts) {
-              if (!part) continue
-              ctx.font = font
-              atoms.push({
-                text: part,
-                style: 'normal',
-                width: ctx.measureText(part).width,
-                isGlue: /^\s+$/.test(part)
-              })
-            }
-          } else {
-            ctx.font = frag.style === 'code' ? codeFont : (frag.style === 'strong' ? boldFont : (frag.style === 'em' ? italicFont : font))
-            atoms.push({
-              text: frag.text,
-              style: frag.style,
-              width: ctx.measureText(frag.text).width,
-              isGlue: false
-            })
-          }
-        }
-
-        // Calculate all lines
-        const allLines: Array<Array<Atom>> = []
-        let atomIndex = 0
-        const maxWidth = quoteContentWidth - quotePadding * 2
-
-        while (atomIndex < atoms.length) {
-          const lineAtoms: Atom[] = []
-          let lineWidth = 0
-
-          while (atomIndex < atoms.length && atoms[atomIndex]!.isGlue) {
-            atomIndex++
-          }
-
-          while (atomIndex < atoms.length) {
-            const atom = atoms[atomIndex]!
-            if (lineWidth + atom.width > maxWidth && lineAtoms.length > 0) {
-              break
-            }
-            lineAtoms.push(atom)
-            lineWidth += atom.width
-            atomIndex++
-            if (atom.isGlue && atomIndex < atoms.length) {
-              const nextAtom = atoms[atomIndex]!
-              if (lineWidth + nextAtom.width > maxWidth) {
-                lineAtoms.pop()
-                lineWidth -= atom.width
-                break
-              }
-            }
-          }
-
-          if (lineAtoms.length === 0) {
-            if (atomIndex < atoms.length) {
-              lineAtoms.push(atoms[atomIndex]!)
-              atomIndex++
-            } else {
-              break
-            }
-          }
-
-          while (lineAtoms.length > 0 && lineAtoms[lineAtoms.length - 1]!.isGlue) {
-            lineAtoms.pop()
-          }
-
-          allLines.push(lineAtoms)
-        }
-
-        const totalHeight = allLines.length * config.lineHeight + 16
-        if (totalHeight > availableHeight && currentY > config.padding.top + 50) {
-          const next = startNewPage()
-          ctx = next.ctx
-          currentY = next.y
-        }
-
-        let lineIndex = 0
-        while (lineIndex < allLines.length) {
-          const blockStartY = currentY
-          const pageAvailableHeight = config.pageHeight - config.padding.bottom - currentY - 16
-          const linesPerPage = Math.max(1, Math.floor(pageAvailableHeight / config.lineHeight))
-          const pageLines = allLines.slice(lineIndex, lineIndex + linesPerPage)
-
-          if (pageLines.length === 0) {
-            const next = startNewPage()
-            ctx = next.ctx
-            currentY = next.y
-            continue
-          }
-
-          const pageHeight = pageLines.length * config.lineHeight + 16
-          renderBlockQuote(ctx, contentRect.x + quotePadding, blockStartY, contentRect.width - quotePadding * 2, pageHeight, theme)
-
-          for (let i = 0; i < pageLines.length; i++) {
-            const lineAtoms = pageLines[i]
-            const y = blockStartY + 8 + i * config.lineHeight
-            let x = contentRect.x + quotePadding * 2
-
-            for (const atom of lineAtoms) {
-              switch (atom.style) {
-                case 'code': {
-                  const inlineFontSize = config.fontSize * 0.875
-                  const bgPaddingX = 4
-                  const bgPaddingY = 3
-                  const bgY = y + config.lineHeight * 0.75 - inlineFontSize * 0.75 - bgPaddingY
-                  ctx.fillStyle = theme.inlineCodeBg
-                  ctx.beginPath()
-                  ctx.roundRect(x - bgPaddingX, bgY, atom.width + bgPaddingX * 2, inlineFontSize + bgPaddingY * 2, 4)
-                  ctx.fill()
-                  ctx.font = codeFont
-                  ctx.fillStyle = theme.inlineCodeText
-                  ctx.fillText(atom.text, x, y + config.lineHeight * 0.75)
-                  break
-                }
-                case 'strong': {
-                  ctx.font = boldFont
-                  ctx.fillStyle = theme.textMuted
-                  ctx.fillText(atom.text, x, y + config.lineHeight * 0.75)
-                  break
-                }
-                case 'em': {
-                  ctx.font = italicFont
-                  ctx.fillStyle = theme.textMuted
-                  ctx.fillText(atom.text, x, y + config.lineHeight * 0.75)
-                  break
-                }
-                case 'link': {
-                  ctx.font = font
-                  ctx.fillStyle = theme.link
-                  ctx.fillText(atom.text, x, y + config.lineHeight * 0.75)
-                  break
-                }
-                default: {
-                  ctx.font = font
-                  ctx.fillStyle = theme.textMuted
-                  ctx.fillText(atom.text, x, y + config.lineHeight * 0.75)
-                }
-              }
-              x += atom.width
-            }
-          }
-
-          lineIndex += pageLines.length
-          currentY = blockStartY + pageHeight
-
-          if (lineIndex < allLines.length) {
-            const next = startNewPage()
-            ctx = next.ctx
-            currentY = next.y
-          }
-        }
-
-        currentY += config.lineHeight * 0.4
-        break
-      }
-
-      case 'code': {
-        const font = getFontString(config, 'code')
-        const codePadding = { x: 28, y: 24 }
-        const codeLineHeight = config.lineHeight * 0.9
-        const codeContentWidth = contentRect.width - codePadding.x * 2
-
-        const prepared = prepareText(block.content, font, true)
-
-        const allLines: Array<{ text: string; width: number }> = []
-        let tempCursor: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 }
-        while (hasMoreText(prepared, tempCursor)) {
-          const line = layoutNextLine(prepared, tempCursor, codeContentWidth)
-          if (!line) break
-          allLines.push({ text: line.text, width: line.width })
-          tempCursor = line.end
-        }
-
-        const totalHeight = allLines.length * codeLineHeight + codePadding.y * 2
-        if (totalHeight > availableHeight && currentY > config.padding.top + 50) {
-          const next = startNewPage()
-          ctx = next.ctx
-          currentY = next.y
-        }
-
-        let lineIndex = 0
-        while (lineIndex < allLines.length) {
-          const blockStartY = currentY
-          const blockPadding = 8
-
-          const pageAvailableHeight = config.pageHeight - config.padding.bottom - currentY - codePadding.y * 2
-          const linesPerPage = Math.max(1, Math.floor(pageAvailableHeight / codeLineHeight))
-          const pageLines = allLines.slice(lineIndex, lineIndex + linesPerPage)
-
-          if (pageLines.length === 0) {
-            const next = startNewPage()
-            ctx = next.ctx
-            currentY = next.y
-            continue
-          }
-
-          const pageHeight = pageLines.length * codeLineHeight + codePadding.y * 2
-
-          renderCodeBlock(ctx, contentRect.x + blockPadding, blockStartY, contentRect.width - blockPadding * 2, pageHeight, theme)
-
-          for (let i = 0; i < pageLines.length; i++) {
-            const line = pageLines[i]
-            const y = blockStartY + codePadding.y + i * codeLineHeight
-            renderTextLine(ctx, line.text, contentRect.x + codePadding.x, y + codeLineHeight * 0.75, theme.codeText, font)
-          }
-
-          lineIndex += pageLines.length
-          currentY = blockStartY + pageHeight
-
-          if (lineIndex < allLines.length) {
-            const next = startNewPage()
-            ctx = next.ctx
-            currentY = next.y
-          }
-        }
-
-        currentY += config.lineHeight * 0.4
-        break
-      }
-
-      case 'list':
-      case 'taskList': {
-        const font = getFontString(config, 'body')
-        const codeFont = getFontString(config, 'inlineCode')
-        const boldFont = font.replace(/400|500/, '600')
-        const italicFont = font.replace('400', '400 italic')
-        const items = block.items || []
-        const bulletWidth = 36
-        const bulletMargin = 12
-        const isTask = block.type === 'taskList'
-        const listLineHeight = config.lineHeight * 0.85
-        const contentStartX = contentRect.x + bulletMargin + bulletWidth
-        const maxTextWidth = contentRect.width - bulletMargin - bulletWidth
-
-        for (let i = 0; i < items.length; i++) {
-          const item = items[i]
-          const bullet = isTask
-            ? (item.checked ? '☑' : '☐')
-            : (block.ordered ? `${i + 1}.` : '•')
-
-          if (config.pageHeight - config.padding.bottom - currentY < listLineHeight * 2) {
-            const next = startNewPage()
-            ctx = next.ctx
-            currentY = next.y
-          }
-
-          // Draw bullet
-          ctx.fillStyle = isTask ? theme.textMuted : theme.accent
-          ctx.font = font
-          const bulletX = contentRect.x + bulletMargin
-          ctx.fillText(bullet, bulletX, currentY + listLineHeight * 0.75)
-
-          // Process inline elements if available
-          if (item.inlineElements && item.inlineElements.length > 0) {
-            const fragments: Array<{ text: string; style: 'normal' | 'code' | 'strong' | 'em' | 'link'; width: number }> = []
-            
-            for (const el of item.inlineElements) {
-              let text = el.content
-              let style: typeof fragments[0]['style']
-              switch (el.type) {
-                case 'code': style = 'code'; break
-                case 'strong': style = 'strong'; break
-                case 'em': style = 'em'; break
-                case 'link': style = 'link'; break
-                default: style = 'normal'
-              }
-              ctx.font = style === 'code' ? codeFont : (style === 'strong' ? boldFont : (style === 'em' ? italicFont : font))
-              const width = ctx.measureText(text).width
-              fragments.push({ text, style, width })
-            }
-
-            type Atom = { text: string; style: typeof fragments[0]['style']; width: number; isGlue: boolean }
-            const atoms: Atom[] = []
-
-            for (const frag of fragments) {
-              if (frag.style === 'normal') {
-                const parts = frag.text.split(/(\s+)/)
-                for (const part of parts) {
-                  if (!part) continue
-                  ctx.font = font
-                  atoms.push({
-                    text: part,
-                    style: 'normal',
-                    width: ctx.measureText(part).width,
-                    isGlue: /^\s+$/.test(part)
-                  })
-                }
-              } else {
-                ctx.font = frag.style === 'code' ? codeFont : (frag.style === 'strong' ? boldFont : (frag.style === 'em' ? italicFont : font))
-                atoms.push({
-                  text: frag.text,
-                  style: frag.style,
-                  width: ctx.measureText(frag.text).width,
-                  isGlue: false
-                })
-              }
-            }
-
-            // Layout atoms into lines
-            let atomIndex = 0
-            let isFirstLine = true
-            
-            while (atomIndex < atoms.length) {
-              const availableH = config.pageHeight - config.padding.bottom - currentY
-              if (availableH < listLineHeight) {
-                const next = startNewPage()
-                ctx = next.ctx
-                currentY = next.y
-                isFirstLine = true
-                continue
-              }
-
-              const lineAtoms: Atom[] = []
-              let lineWidth = 0
-              const lineMaxWidth = maxTextWidth - (isFirstLine ? 0 : 0)
-
-              while (atomIndex < atoms.length && atoms[atomIndex]!.isGlue) {
-                atomIndex++
-              }
-
-              while (atomIndex < atoms.length) {
-                const atom = atoms[atomIndex]!
-                if (lineWidth + atom.width > lineMaxWidth && lineAtoms.length > 0) {
-                  break
-                }
-                lineAtoms.push(atom)
-                lineWidth += atom.width
-                atomIndex++
-                if (atom.isGlue && atomIndex < atoms.length) {
-                  const nextAtom = atoms[atomIndex]!
-                  if (lineWidth + nextAtom.width > lineMaxWidth) {
-                    lineAtoms.pop()
-                    lineWidth -= atom.width
-                    break
-                  }
-                }
-              }
-
-              if (lineAtoms.length === 0) {
-                if (atomIndex < atoms.length) {
-                  lineAtoms.push(atoms[atomIndex]!)
-                  atomIndex++
-                } else {
-                  break
-                }
-              }
-
-              while (lineAtoms.length > 0 && lineAtoms[lineAtoms.length - 1]!.isGlue) {
-                lineAtoms.pop()
-              }
-
-              // Render line
-              const lineY = currentY + listLineHeight * 0.75
-              let x = contentStartX
-
-              for (const atom of lineAtoms) {
-                switch (atom.style) {
-                  case 'code': {
-                    const inlineFontSize = config.fontSize * 0.875
-                    const bgPaddingX = 4
-                    const bgPaddingY = 3
-                    const bgY = lineY - inlineFontSize * 0.75 - bgPaddingY
-                    ctx.fillStyle = theme.inlineCodeBg
-                    ctx.beginPath()
-                    ctx.roundRect(x - bgPaddingX, bgY, atom.width + bgPaddingX * 2, inlineFontSize + bgPaddingY * 2, 4)
-                    ctx.fill()
-                    ctx.font = codeFont
-                    ctx.fillStyle = theme.inlineCodeText
-                    ctx.fillText(atom.text, x, lineY)
-                    break
-                  }
-                  case 'strong': {
-                    ctx.font = boldFont
-                    ctx.fillStyle = theme.text
-                    ctx.fillText(atom.text, x, lineY)
-                    break
-                  }
-                  case 'em': {
-                    ctx.font = italicFont
-                    ctx.fillStyle = theme.text
-                    ctx.fillText(atom.text, x, lineY)
-                    break
-                  }
-                  case 'link': {
-                    ctx.font = font
-                    ctx.fillStyle = theme.link
-                    ctx.fillText(atom.text, x, lineY)
-                    ctx.strokeStyle = theme.link
-                    ctx.lineWidth = 1
-                    ctx.beginPath()
-                    ctx.moveTo(x, lineY + 3)
-                    ctx.lineTo(x + atom.width, lineY + 3)
-                    ctx.stroke()
-                    break
-                  }
-                  default: {
-                    ctx.font = font
-                    ctx.fillStyle = theme.text
-                    ctx.fillText(atom.text, x, lineY)
-                  }
-                }
-                x += atom.width
-              }
-
-              currentY += listLineHeight
-              isFirstLine = false
-            }
-          } else {
-            // Fallback to plain text rendering
-            const prepared = prepareText(item.text, font)
-            let cursor: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 }
-            let isFirstLine = true
-
-            while (hasMoreText(prepared, cursor)) {
-              const availableH = config.pageHeight - config.padding.bottom - currentY
-
-              if (availableH < listLineHeight) {
-                const next = startNewPage()
-                ctx = next.ctx
-                currentY = next.y
-                isFirstLine = true
-                continue
-              }
-
-              const result = layoutColumn(prepared, cursor, {
-                ...config,
-                padding: { ...config.padding, left: config.padding.left + bulletMargin + bulletWidth },
-              }, currentY, availableH)
-
-              for (const line of result.lines) {
-                const x = isFirstLine ? line.x : line.x
-                renderTextLine(ctx, line.text, x, line.y + listLineHeight * 0.75, theme.text, font)
-                isFirstLine = false
-              }
-
-              cursor = result.cursor
-              currentY = result.finalY
-            }
-          }
-
-          currentY += listLineHeight * 0.15
-        }
-
-        currentY += config.lineHeight * 0.4
-        break
-      }
-
-      case 'table': {
-        if (!block.rows || block.rows.length === 0) break
-
-        const font = getFontString(config, 'body')
-        const smallFont = getFontString(config, 'small')
-        const rows = block.rows
-        const colCount = rows[0]?.length || 1
-        const colWidth = (contentRect.width - 32) / colCount
-
-        ctx.fillStyle = theme.quoteBg
-        ctx.fillRect(contentRect.x, currentY, contentRect.width, config.lineHeight * 1.2)
-
-        ctx.fillStyle = theme.textHeading
-        ctx.font = smallFont
-        rows[0].forEach((cell, idx) => {
-          ctx.fillText(cell.slice(0, 20), contentRect.x + 16 + idx * colWidth, currentY + config.lineHeight * 0.8)
-        })
-
-        currentY += config.lineHeight * 1.2
-
-        ctx.strokeStyle = theme.border
-        ctx.lineWidth = 2
-        ctx.beginPath()
-        ctx.moveTo(contentRect.x, currentY - 4)
-        ctx.lineTo(contentRect.x + contentRect.width, currentY - 4)
-        ctx.stroke()
-
-        ctx.fillStyle = theme.text
-        ctx.font = smallFont
-        for (let i = 1; i < rows.length && i < 10; i++) {
-          rows[i].forEach((cell, idx) => {
-            ctx.fillText(cell.slice(0, 20), contentRect.x + 16 + idx * colWidth, currentY + config.lineHeight * 0.8)
-          })
-
-          ctx.strokeStyle = theme.border
-          ctx.lineWidth = 1
-          ctx.beginPath()
-          ctx.moveTo(contentRect.x, currentY + config.lineHeight - 4)
-          ctx.lineTo(contentRect.x + contentRect.width, currentY + config.lineHeight - 4)
-          ctx.stroke()
-
-          currentY += config.lineHeight * 1.1
-        }
-
-        currentY += config.lineHeight * 0.3
-        break
-      }
-
-      case 'hr': {
-        if (availableHeight < 50) {
-          const next = startNewPage()
-          ctx = next.ctx
-          currentY = next.y
-        }
-
-        renderHorizontalRule(ctx, contentRect.x, currentY + 25, contentRect.width, theme)
-        currentY += 50
-        break
-      }
-    }
-  }
-
-  return pages
-}
-
-// ==================== UI 控制 ====================
-
-const SAMPLE_MARKDOWN = `# Markdown to Image
-
-A web-based tool that converts Markdown to beautiful images using Canvas, powered by the [Pretext](https://github.com/chenglou/pretext) layout engine for precise typography.
-
-# Heading 1
-## Heading 2
-### Heading 3
-#### Heading 4
-
-Regular paragraph with **bold text**, *italic text*, and \`inline code\`. You can also use ~~strikethrough~~ and combine **bold and _italic_**.
-
-Visit [GitHub](https://github.com/accessiblefish/markdown-to-image) for code hosting.
-
-- First item
-- Second item
-  - Nested item A
-  - Nested item B
-- Third item
-
-1. First step
-2. Second step
-3. Third step
-
-- [x] Completed task
-- [ ] Pending task
-- [ ] Another pending task
-
-\`\`\`javascript
-function greet(name) {
-  const message = \`Hello, \${name}!\`;
-  console.log(message);
-  return message;
-}
-
-greet('World');
-\`\`\`
-
-> "The best way to predict the future is to invent it."
-> — Alan Kay
-
-| Feature | Status | Priority |
-|---------|--------|----------|
-| Headings | ✅ | High |
-| Lists | ✅ | High |
-| Code Blocks | ✅ | High |
-| Tables | ✅ | Medium |
-
----
-
-Here's a paragraph with **bold**, *italic*, \`code\`, and a [link](https://example.com). Followed by a list:
-
-- Item with **bold**
-- Item with *italic*
-- Item with \`code\`
-
-> A blockquote can contain **formatted** text and even \`code\`.
-
----
-`
-
+  getDOMElements,
+  debounce,
+  updateCharCount,
+  showLoading,
+  showEmptyState,
+  renderCanvases,
+  getLayoutConfig,
+  loadSample,
+  clearEditor,
+  type DOMElements,
+} from './ui/controls'
+import { downloadAll } from './utils/download'
+import { DEBOUNCE_DELAY } from './config/constants'
+
+// 全局状态
 let currentCanvases: HTMLCanvasElement[] = []
-let debounceTimer: number | null = null
+let isRendering = false
+let pendingRender = false
 
+/**
+ * 初始化应用
+ */
+function initApp(): void {
+  let elements: DOMElements
 
-
-function updatePreview() {
-  const markdown = editor.value
-  charCount.textContent = `${markdown.length} chars`
-
-  if (!markdown.trim()) {
-    previewContainer.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">📝</div>
-        <p>Enter Markdown on the left<br>Images will be generated automatically</p>
+  try {
+    elements = getDOMElements()
+  } catch (error) {
+    console.error('Failed to initialize app:', error)
+    document.body.innerHTML = `
+      <div style="padding: 20px; color: red;">
+        Error: Failed to initialize application. Please refresh the page.
       </div>
     `
+    return
+  }
+
+  // 绑定事件监听器
+  bindEventListeners(elements)
+
+  // 初始渲染
+  updateCharCount(elements.charCount, elements.editor.value.length)
+  updatePreview(elements)
+}
+
+/**
+ * 绑定事件监听器
+ */
+function bindEventListeners(elements: DOMElements): void {
+  const debouncedPreview = debounce(() => updatePreview(elements), DEBOUNCE_DELAY)
+
+  // 编辑器输入事件
+  elements.editor.addEventListener('input', () => {
+    updateCharCount(elements.charCount, elements.editor.value.length)
+  })
+
+  elements.editor.addEventListener('input', debouncedPreview)
+
+  // 设置变更事件
+  elements.themeSelect.addEventListener('change', () => updatePreview(elements))
+  elements.fontSizeSelect.addEventListener('change', () => updatePreview(elements))
+  elements.pageWidthInput.addEventListener('change', () => updatePreview(elements))
+  elements.pageHeightInput.addEventListener('change', () => updatePreview(elements))
+
+  // 按钮事件
+  elements.btnLoadSample.addEventListener('click', () => {
+    loadSample(elements, () => updatePreview(elements))
+  })
+
+  elements.btnClear.addEventListener('click', () => {
+    clearEditor(elements, () => updatePreview(elements))
+  })
+
+  elements.btnDownloadAll.addEventListener('click', async () => {
+    try {
+      await downloadAll(currentCanvases, elements.btnDownloadAll)
+    } catch (error) {
+      // 错误已在 downloadAll 中处理
+    }
+  })
+}
+
+/**
+ * 更新预览
+ */
+async function updatePreview(elements: DOMElements): Promise<void> {
+  const markdown = elements.editor.value
+
+  if (!markdown.trim()) {
+    showEmptyState(elements.previewContainer)
     currentCanvases = []
     return
   }
 
-  const config: LayoutConfig = {
-    pageWidth: parseInt(pageWidthInput.value) || DEFAULT_PAGE_WIDTH,
-    pageHeight: parseInt(pageHeightInput.value) || DEFAULT_PAGE_HEIGHT,
-    padding: PADDING,
-    fontSize: parseInt(fontSizeSelect.value) || 34,
-    lineHeight: (parseInt(fontSizeSelect.value) || 34) * 1.3,
-    theme: themeSelect.value as ThemeKey,
+  // 显示加载状态
+  showLoading(elements.previewContainer)
+
+  // 防止并发渲染
+  if (isRendering) {
+    pendingRender = true
+    return
   }
 
-  previewContainer.innerHTML = '<div class="loading"><div class="spinner"></div>Rendering...</div>'
-
-  requestAnimationFrame(() => {
-    renderToPages(markdown, config).then(canvases => {
-      currentCanvases = canvases
-      previewContainer.innerHTML = ''
-
-      canvases.forEach((canvas, index) => {
-        const wrapper = document.createElement('div')
-        wrapper.className = 'page-card'
-
-        const label = document.createElement('div')
-        label.className = 'page-label'
-        label.textContent = `Page ${index + 1}`
-
-        wrapper.appendChild(label)
-        wrapper.appendChild(canvas)
-        previewContainer.appendChild(wrapper)
-      })
-    })
-  })
-}
-
-function debouncedUpdate() {
-  if (debounceTimer) clearTimeout(debounceTimer)
-  debounceTimer = window.setTimeout(updatePreview, 300)
-}
-
-// Event bindings
-editor.addEventListener('input', () => {
-  charCount.textContent = `${editor.value.length} chars`
-})
-
-editor.addEventListener('input', debouncedUpdate)
-
-themeSelect.addEventListener('change', updatePreview)
-fontSizeSelect.addEventListener('change', updatePreview)
-pageWidthInput.addEventListener('change', updatePreview)
-pageHeightInput.addEventListener('change', updatePreview)
-
-btnLoadSample.addEventListener('click', () => {
-  editor.value = SAMPLE_MARKDOWN
-  charCount.textContent = `${editor.value.length} chars`
-  updatePreview()
-})
-
-btnClear.addEventListener('click', () => {
-  editor.value = ''
-  charCount.textContent = '0 chars'
-  updatePreview()
-})
-
-btnDownloadAll.addEventListener('click', async () => {
-  if (currentCanvases.length === 0) return
-
-  // Show loading state
-  const originalText = btnDownloadAll.textContent
-  btnDownloadAll.textContent = 'Generating...'
-  btnDownloadAll.disabled = true
+  isRendering = true
 
   try {
-    if (currentCanvases.length === 1) {
-      // Single image: download directly
-      const canvas = currentCanvases[0]
-      const link = document.createElement('a')
-      link.download = 'markdown.png'
-      link.href = canvas.toDataURL('image/png')
-      link.click()
-    } else {
-      // Multiple images: pack into zip
-      const zip = new JSZip()
+    const config = getLayoutConfig(elements)
 
-      for (let i = 0; i < currentCanvases.length; i++) {
-        const canvas = currentCanvases[i]
-        const dataUrl = canvas.toDataURL('image/png')
-        const base64Data = dataUrl.split(',')[1]
-        zip.file(`page-${i + 1}.png`, base64Data, { base64: true })
-      }
+    // 使用 requestAnimationFrame 避免阻塞 UI
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        renderToPages(markdown, config)
+          .then((canvases) => {
+            currentCanvases = canvases
+            renderCanvases(elements.previewContainer, canvases)
+          })
+          .catch((error) => {
+            console.error('Render error:', error)
+            elements.previewContainer.innerHTML = `
+              <div class="empty-state">
+                <div class="empty-icon">⚠️</div>
+                <p>Rendering failed.<br>Please try again.</p>
+              </div>
+            `
+          })
+          .finally(() => {
+            isRendering = false
+            resolve()
 
-      const content = await zip.generateAsync({ type: 'blob' })
-      const link = document.createElement('a')
-      link.download = 'markdown-images.zip'
-      link.href = URL.createObjectURL(content)
-      link.click()
-
-      // Clean up
-      URL.revokeObjectURL(link.href)
-    }
+            // 处理挂起的渲染请求
+            if (pendingRender) {
+              pendingRender = false
+              updatePreview(elements)
+            }
+          })
+      })
+    })
   } catch (error) {
-    console.error('Download failed:', error)
-    alert('Download failed. Please try again.')
-  } finally {
-    // Restore button state
-    btnDownloadAll.textContent = originalText
-    btnDownloadAll.disabled = false
+    console.error('Preview update error:', error)
+    isRendering = false
+    pendingRender = false
   }
-})
+}
 
-// Initialize
-charCount.textContent = `${editor.value.length} chars`
-updatePreview()
+// 启动应用
+initApp()
