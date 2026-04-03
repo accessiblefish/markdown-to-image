@@ -14,6 +14,7 @@ import {
 
 import { micromark } from 'micromark'
 import { gfm, gfmHtml } from 'micromark-extension-gfm'
+import JSZip from 'jszip'
 
 // ==================== 配置常量 ====================
 const DEFAULT_PAGE_WIDTH = 1080
@@ -986,16 +987,46 @@ btnClear.addEventListener('click', () => {
 btnDownloadAll.addEventListener('click', async () => {
   if (currentCanvases.length === 0) return
 
-  for (let i = 0; i < currentCanvases.length; i++) {
-    const canvas = currentCanvases[i]
-    const link = document.createElement('a')
-    link.download = `page-${i + 1}.png`
-    link.href = canvas.toDataURL('image/png')
-    link.click()
+  // Show loading state
+  const originalText = btnDownloadAll.textContent
+  btnDownloadAll.textContent = 'Generating...'
+  btnDownloadAll.disabled = true
 
-    if (i < currentCanvases.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 200))
+  try {
+    if (currentCanvases.length === 1) {
+      // Single image: download directly
+      const canvas = currentCanvases[0]
+      const link = document.createElement('a')
+      link.download = 'markdown.png'
+      link.href = canvas.toDataURL('image/png')
+      link.click()
+    } else {
+      // Multiple images: pack into zip
+      const zip = new JSZip()
+
+      for (let i = 0; i < currentCanvases.length; i++) {
+        const canvas = currentCanvases[i]
+        const dataUrl = canvas.toDataURL('image/png')
+        const base64Data = dataUrl.split(',')[1]
+        zip.file(`page-${i + 1}.png`, base64Data, { base64: true })
+      }
+
+      const content = await zip.generateAsync({ type: 'blob' })
+      const link = document.createElement('a')
+      link.download = 'markdown-images.zip'
+      link.href = URL.createObjectURL(content)
+      link.click()
+
+      // Clean up
+      URL.revokeObjectURL(link.href)
     }
+  } catch (error) {
+    console.error('Download failed:', error)
+    alert('Download failed. Please try again.')
+  } finally {
+    // Restore button state
+    btnDownloadAll.textContent = originalText
+    btnDownloadAll.disabled = false
   }
 })
 
