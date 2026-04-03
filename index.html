@@ -24,11 +24,15 @@
         padding: 0;
       }
 
+      html, body {
+        height: 100%;
+        overflow: hidden;
+      }
+
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         background: var(--bg);
         color: var(--text);
-        min-height: 100vh;
         display: flex;
         flex-direction: column;
       }
@@ -104,23 +108,32 @@
       /* Main Layout */
       .main {
         flex: 1;
-        display: grid;
-        grid-template-columns: 400px 1fr;
+        display: flex;
         min-height: 0;
+        overflow: hidden;
       }
 
       @media (max-width: 1024px) {
         .main {
-          grid-template-columns: 1fr;
-          grid-template-rows: 300px 1fr;
+          flex-direction: column;
         }
       }
 
       /* Editor Panel */
       .editor-panel {
+        width: 400px;
         border-right: 1px solid var(--border);
         display: flex;
         flex-direction: column;
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+
+      @media (max-width: 1024px) {
+        .editor-panel {
+          width: 100%;
+          height: 300px;
+        }
       }
 
       .panel-header {
@@ -136,9 +149,16 @@
         align-items: center;
       }
 
-      textarea {
+      .editor-wrapper {
         flex: 1;
+        overflow: auto;
+        position: relative;
+        isolation: isolate;
+      }
+
+      textarea {
         width: 100%;
+        height: 100%;
         padding: 16px;
         border: none;
         background: transparent;
@@ -149,6 +169,8 @@
         resize: none;
         outline: none;
         tab-size: 2;
+        display: block;
+        overflow: auto;
       }
 
       textarea::placeholder {
@@ -157,6 +179,7 @@
 
       /* Preview Panel */
       .preview-panel {
+        flex: 1;
         overflow: auto;
         padding: 24px;
         background: #0a0a0c;
@@ -293,11 +316,13 @@
           <span>Markdown Input</span>
           <span id="charCount">0 chars</span>
         </div>
-        <textarea
-          id="editor"
-          placeholder="Enter your Markdown here..."
-          spellcheck="false"
-        ></textarea>
+        <div class="editor-wrapper">
+          <textarea
+            id="editor"
+            placeholder="Enter your Markdown here..."
+            spellcheck="false"
+          ></textarea>
+        </div>
         <div class="settings">
           <div class="setting-row">
             <span class="setting-label">Theme</span>

@@ -651,41 +651,63 @@ async function renderToPages(markdown: string, config: LayoutConfig): Promise<HT
       case 'blockquote': {
         const font = getFontString(config, 'body')
         const prepared = prepareText(block.content, font)
-        const quoteStartY = currentY
-        let hasRenderedQuote = false
+        const quotePadding = 24
+        const quoteContentWidth = contentRect.width - quotePadding * 2
 
-        let cursor: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 }
+        const allLines: Array<{ text: string; width: number }> = []
+        let tempCursor: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 }
+        while (hasMoreText(prepared, tempCursor)) {
+          const line = layoutNextLine(prepared, tempCursor, quoteContentWidth)
+          if (!line) break
+          allLines.push({ text: line.text, width: line.width })
+          tempCursor = line.end
+        }
 
-        while (hasMoreText(prepared, cursor)) {
-          const availableH = config.pageHeight - config.padding.bottom - currentY
+        const totalHeight = allLines.length * config.lineHeight + 16
+        if (totalHeight > availableHeight && currentY > config.padding.top + 50) {
+          const next = startNewPage()
+          ctx = next.ctx
+          currentY = next.y
+        }
 
-          if (availableH < config.lineHeight) {
-            if (hasRenderedQuote) {
-              renderBlockQuote(ctx, contentRect.x + 24, quoteStartY, contentRect.width - 48, currentY - quoteStartY, theme)
-            }
+        let lineIndex = 0
+        while (lineIndex < allLines.length) {
+          const blockStartY = currentY
+
+          const pageAvailableHeight = config.pageHeight - config.padding.bottom - currentY - 16
+          const linesPerPage = Math.max(1, Math.floor(pageAvailableHeight / config.lineHeight))
+          const pageLines = allLines.slice(lineIndex, lineIndex + linesPerPage)
+
+          if (pageLines.length === 0) {
             const next = startNewPage()
             ctx = next.ctx
             currentY = next.y
-            hasRenderedQuote = false
             continue
           }
 
-          const result = layoutColumn(prepared, cursor, {
-            ...config,
-            padding: { ...config.padding, left: config.padding.left + 48 },
-          }, currentY, availableH)
+          const pageHeight = pageLines.length * config.lineHeight + 16
 
-          for (const line of result.lines) {
-            renderTextLine(ctx, line.text, line.x + 24, line.y + config.lineHeight * 0.75, theme.textMuted, font)
+          // 先渲染背景（在文字之前）
+          renderBlockQuote(ctx, contentRect.x + quotePadding, blockStartY, contentRect.width - quotePadding * 2, pageHeight, theme)
+
+          // 再渲染文字
+          for (let i = 0; i < pageLines.length; i++) {
+            const line = pageLines[i]
+            const y = blockStartY + 8 + i * config.lineHeight
+            renderTextLine(ctx, line.text, contentRect.x + quotePadding * 2, y + config.lineHeight * 0.75, theme.textMuted, font)
           }
 
-          hasRenderedQuote = true
-          cursor = result.cursor
-          currentY = result.finalY
+          lineIndex += pageLines.length
+          currentY = blockStartY + pageHeight
+
+          if (lineIndex < allLines.length) {
+            const next = startNewPage()
+            ctx = next.ctx
+            currentY = next.y
+          }
         }
 
-        renderBlockQuote(ctx, contentRect.x + 24, quoteStartY, contentRect.width - 48, currentY - quoteStartY + 4, theme)
-        currentY += config.lineHeight * 0.6
+        currentY += config.lineHeight * 0.4
         break
       }
 
@@ -908,6 +930,8 @@ Made with ❤️ using Canvas`
 let currentCanvases: HTMLCanvasElement[] = []
 let debounceTimer: number | null = null
 
+
+
 function updatePreview() {
   const markdown = editor.value
   charCount.textContent = `${markdown.length} chars`
@@ -922,12 +946,6 @@ function updatePreview() {
     currentCanvases = []
     return
   }
-
-  // Save editor state to prevent scrolling jump
-  const editorScrollTop = editor.scrollTop
-  const editorSelectionStart = editor.selectionStart
-  const editorSelectionEnd = editor.selectionEnd
-  const isEditorFocused = document.activeElement === editor
 
   const config: LayoutConfig = {
     pageWidth: parseInt(pageWidthInput.value) || DEFAULT_PAGE_WIDTH,
@@ -957,13 +975,6 @@ function updatePreview() {
         wrapper.appendChild(canvas)
         previewContainer.appendChild(wrapper)
       })
-
-      // Restore editor state
-      editor.scrollTop = editorScrollTop
-      if (isEditorFocused) {
-        editor.focus()
-        editor.setSelectionRange(editorSelectionStart, editorSelectionEnd)
-      }
     })
   })
 }
