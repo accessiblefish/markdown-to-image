@@ -780,6 +780,7 @@ async function renderToPages(markdown: string, config: LayoutConfig): Promise<HT
         const font = getFontString(config, 'body')
         const items = block.items || []
         const bulletWidth = 36
+        const bulletMargin = 8
         const isTask = block.type === 'taskList'
         const listLineHeight = config.lineHeight * 0.85
 
@@ -798,7 +799,7 @@ async function renderToPages(markdown: string, config: LayoutConfig): Promise<HT
 
           ctx.fillStyle = isTask ? theme.textMuted : theme.accent
           ctx.font = font
-          const bulletX = isTask ? contentRect.x : contentRect.x + 4
+          const bulletX = contentRect.x + bulletMargin
           ctx.fillText(bullet, bulletX, currentY + listLineHeight * 0.75)
 
           let cursor: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 }
@@ -817,11 +818,11 @@ async function renderToPages(markdown: string, config: LayoutConfig): Promise<HT
 
             const result = layoutColumn(prepared, cursor, {
               ...config,
-              padding: { ...config.padding, left: config.padding.left + bulletWidth },
+              padding: { ...config.padding, left: config.padding.left + bulletMargin + bulletWidth },
             }, currentY, availableH)
 
             for (const line of result.lines) {
-              const x = isFirstLine ? line.x + bulletWidth - 8 : line.x + bulletWidth
+              const x = isFirstLine ? line.x - 8 : line.x
               renderTextLine(ctx, line.text, x, line.y + listLineHeight * 0.75, theme.text, font)
               isFirstLine = false
             }
