@@ -930,7 +930,7 @@ async function renderToPages(markdown: string, config: LayoutConfig): Promise<HT
         for (let i = 0; i < items.length; i++) {
           const item = items[i]
           const bullet = isTask
-            ? (item.checked ? '☑' : '☐')
+            ? (item.checked ? '✅' : '⬜')
             : (block.ordered ? `${i + 1}.` : '•')
 
           if (config.pageHeight - config.padding.bottom - currentY < listLineHeight * 2) {
