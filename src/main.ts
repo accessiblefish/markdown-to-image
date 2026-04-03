@@ -781,6 +781,7 @@ async function renderToPages(markdown: string, config: LayoutConfig): Promise<HT
         const items = block.items || []
         const bulletWidth = 36
         const isTask = block.type === 'taskList'
+        const listLineHeight = config.lineHeight * 0.85
 
         for (let i = 0; i < items.length; i++) {
           const item = items[i]
@@ -789,7 +790,7 @@ async function renderToPages(markdown: string, config: LayoutConfig): Promise<HT
             : (block.ordered ? `${i + 1}.` : '•')
           const prepared = prepareText(item.text, font)
 
-          if (config.pageHeight - config.padding.bottom - currentY < config.lineHeight * 2) {
+          if (config.pageHeight - config.padding.bottom - currentY < listLineHeight * 2) {
             const next = startNewPage()
             ctx = next.ctx
             currentY = next.y
@@ -798,7 +799,7 @@ async function renderToPages(markdown: string, config: LayoutConfig): Promise<HT
           ctx.fillStyle = isTask ? theme.textMuted : theme.accent
           ctx.font = font
           const bulletX = isTask ? contentRect.x : contentRect.x + 4
-          ctx.fillText(bullet, bulletX, currentY + config.lineHeight * 0.75)
+          ctx.fillText(bullet, bulletX, currentY + listLineHeight * 0.75)
 
           let cursor: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 }
           let isFirstLine = true
@@ -806,7 +807,7 @@ async function renderToPages(markdown: string, config: LayoutConfig): Promise<HT
           while (hasMoreText(prepared, cursor)) {
             const availableH = config.pageHeight - config.padding.bottom - currentY
 
-            if (availableH < config.lineHeight) {
+            if (availableH < listLineHeight) {
               const next = startNewPage()
               ctx = next.ctx
               currentY = next.y
@@ -821,7 +822,7 @@ async function renderToPages(markdown: string, config: LayoutConfig): Promise<HT
 
             for (const line of result.lines) {
               const x = isFirstLine ? line.x + bulletWidth - 8 : line.x + bulletWidth
-              renderTextLine(ctx, line.text, x, line.y + config.lineHeight * 0.75, theme.text, font)
+              renderTextLine(ctx, line.text, x, line.y + listLineHeight * 0.75, theme.text, font)
               isFirstLine = false
             }
 
@@ -829,7 +830,7 @@ async function renderToPages(markdown: string, config: LayoutConfig): Promise<HT
             currentY = result.finalY
           }
 
-          currentY += config.lineHeight * 0.15
+          currentY += listLineHeight * 0.15
         }
 
         currentY += config.lineHeight * 0.4
@@ -952,7 +953,7 @@ function updatePreview() {
     pageHeight: parseInt(pageHeightInput.value) || DEFAULT_PAGE_HEIGHT,
     padding: PADDING,
     fontSize: parseInt(fontSizeSelect.value) || 34,
-    lineHeight: (parseInt(fontSizeSelect.value) || 34) * 1.5,
+    lineHeight: (parseInt(fontSizeSelect.value) || 34) * 1.3,
     theme: themeSelect.value as ThemeKey,
   }
 
