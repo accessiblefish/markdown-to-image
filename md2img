@@ -1,0 +1,13 @@
+#!/bin/sh
+# Markdown to Image - CLI Wrapper
+# Usage: ./md2img [file.md] [options]
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+if [ $# -eq 0 ]; then
+    # No arguments - use sample
+    bun "$SCRIPT_DIR/src/cli/index.ts" -o output.png
+else
+    # Pass all arguments
+    bun "$SCRIPT_DIR/src/cli/index.ts" "$@"
+fi
