@@ -27,5 +27,16 @@ yarn-error.log*
 .cache
 .temp
 
-bun.lock
-package.json
+# Output files
+output.png
+output.jpg
+output.webp
+output-dark.png
+output-dark.jpg
+output-dark.webp
+*.generated.png
+*.generated.jpg
+
+# Lock files (optional, depending on preference)
+# bun.lock
+# package-lock.json
