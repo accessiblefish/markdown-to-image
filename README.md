@@ -18,13 +18,21 @@ Convert Markdown to beautiful images. No browser required.
 ## Quick Start
 
 ```bash
-# 1. Install
+# Install
 bun install
 
-# 2. CLI - Convert your markdown
-bun src/cli/index.ts input.md -o output.png
+# Method 1: Direct script (easiest)
+./md2img input.md -o output.png
 
-# 3. Or run Web UI
+# Method 2: Global install
+bun link
+md2img input.md -o output.png
+
+# Method 3: Make commands
+make demo           # Generate sample
+make convert FILE=readme.md   # Convert file
+
+# Web UI
 bun dev
 ```
 
@@ -35,14 +43,17 @@ That's it. Open `output.png` or visit `http://localhost:3000`.
 ### CLI
 
 ```bash
-# Use built-in sample
-bun src/cli/index.ts -o output.png
+# Use built-in sample (3 pages)
+./md2img
 
 # Your own file
-bun src/cli/index.ts README.md -o readme.png
+./md2img README.md -o readme.png
 
 # Dark theme, JPG format
-bun src/cli/index.ts doc.md -t dark -F jpg -o doc.jpg
+./md2img doc.md -t dark -F jpg -o doc.jpg
+
+# After "bun link", use anywhere
+md2img file.md
 ```
 
 **Options:**
