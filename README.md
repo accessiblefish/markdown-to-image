@@ -22,14 +22,15 @@ Convert Markdown to beautiful images. No browser required.
 bun install
 
 # Method 1: Direct script (easiest)
-./md2img input.md -o output.png
+./md2img input.md          # Auto-named: input.png
+./md2img input.md -o out.png   # Custom name
 
 # Method 2: Global install
 bun link
-md2img input.md -o output.png
+md2img input.md
 
 # Method 3: Make commands
-make demo           # Generate sample
+make demo                  # Generate sample
 make convert FILE=readme.md   # Convert file
 
 # Web UI
@@ -43,14 +44,17 @@ That's it. Open `output.png` or visit `http://localhost:3000`.
 ### CLI
 
 ```bash
-# Use built-in sample (3 pages)
+# Use built-in sample (auto-named: markdown-to-image.png)
 ./md2img
 
-# Your own file
-./md2img README.md -o readme.png
+# Your own file (auto-named: README.png)
+./md2img README.md
+
+# Custom output name
+./md2img doc.md -o my-doc.png
 
 # Dark theme, JPG format
-./md2img doc.md -t dark -F jpg -o doc.jpg
+./md2img doc.md -t dark -F jpg
 
 # After "bun link", use anywhere
 md2img file.md
@@ -60,7 +64,7 @@ md2img file.md
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `-o, --output` | Output path | `markdown-to-image.png` |
+| `-o, --output` | Output path (optional) | Based on input filename |
 | `-t, --theme` | light / dark / sepia | light |
 | `-W, --width` | Page width (px) | 1080 |
 | `-H, --height` | Page height (px) | 1440 |
