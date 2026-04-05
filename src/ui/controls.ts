@@ -111,6 +111,11 @@ export function renderCanvases(
     label.className = 'page-label'
     label.textContent = `Page ${index + 1}`
 
+    // 设置 canvas 响应式尺寸
+    canvas.style.width = '100%'
+    canvas.style.height = 'auto'
+    canvas.style.display = 'block'
+
     wrapper.appendChild(label)
     wrapper.appendChild(canvas)
     container.appendChild(wrapper)
