@@ -42,7 +42,7 @@ export async function renderToPages(
 ): Promise<HTMLCanvasElement[]> {
   const { markdown, config, createCanvas, adapter } = options
   
-  const blocks = parseMarkdownToBlocks(markdown, adapter)
+  const blocks = await parseMarkdownToBlocks(markdown, adapter)
   const theme = getTheme(config.theme)
 
   const context: PageContext = {

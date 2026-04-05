@@ -8,14 +8,16 @@ import type { Block, InlineElement, InlineElementType, LinkElement, PlatformAdap
 /**
  * 解析 Markdown 字符串为 Block 数组
  */
-export function parseMarkdownToBlocks(markdown: string, adapter: PlatformAdapter): Block[] {
+export async function parseMarkdownToBlocks(markdown: string, adapter: PlatformAdapter): Promise<Block[]> {
   if (!markdown.trim()) {
     return []
   }
 
-  // 动态导入 micromark 避免打包问题
-  const { micromark } = require('micromark')
-  const { gfm, gfmHtml } = require('micromark-extension-gfm')
+  // 动态导入 micromark（浏览器和 Node 都支持）
+  const [{ micromark }, { gfm, gfmHtml }] = await Promise.all([
+    import('micromark'),
+    import('micromark-extension-gfm'),
+  ])
 
   const html = micromark(markdown, {
     extensions: [gfm()],
