@@ -78,7 +78,6 @@ async function processInput(options: CLIOptions): Promise<void> {
   // 确定输出目录和文件名
   let outputDir: string
   let outputName: string
-  const format = options.format || 'png'
 
   if (options.output) {
     outputDir = dirname(resolve(options.output))
@@ -86,11 +85,6 @@ async function processInput(options: CLIOptions): Promise<void> {
   } else {
     outputDir = process.cwd()
     outputName = inputName
-  }
-  
-  // 提示用户将使用的默认文件名（当未指定 -o 时）
-  if (!options.output) {
-    console.log(`💡 Output: ${outputName}.${format} (use -o to specify custom name)`)
   }
 
   if (!existsSync(outputDir)) {
@@ -138,6 +132,7 @@ async function processInput(options: CLIOptions): Promise<void> {
   }
 
   // 保存图片
+  const format = options.format || 'png'
   const quality = options.quality || 95
 
   console.log(`✓ Generated ${pages.length} page(s)`)
@@ -164,7 +159,7 @@ async function main(): Promise<void> {
     .description('Convert Markdown files to beautiful images')
     .version('1.0.0')
     .argument('[input]', 'Input Markdown file path (uses sample if not provided)')
-    .option('-o, --output <path>', 'Output image path (optional)')
+    .option('-o, --output <path>', 'Output image path (default: input name or markdown-to-image.png)')
     .option('-t, --theme <theme>', 'Theme: light, dark, sepia', 'light')
     .option('-W, --width <number>', 'Page width in pixels', '1080')
     .option('-H, --height <number>', 'Page height in pixels', '1440')
