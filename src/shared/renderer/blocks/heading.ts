@@ -58,28 +58,48 @@ export function renderHeading(
     
     // 如果标题太长需要换行
     if (textWidth > contentWidth) {
-      const prepared = prepareWithSegments(text, font)
-      let cursor: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 }
+      // 优先检查是否有手动换行标记（<br>、<br/>、\n）
+      const manualBreakPattern = /<br\s*\/?>|\n/g
+      const hasManualBreak = manualBreakPattern.test(text)
       
-      // 计算总行数来垂直居中（H1 使用 1.2 倍行高，基于 100px 字体）
-      const h1LineHeight = 120
-      let lines: string[] = []
-      let widths: number[] = []
-      while (true) {
-        const line = layoutNextLine(prepared, cursor, contentWidth)
-        if (line === null) break
-        lines.push(line.text)
-        widths.push(line.width)
-        cursor = line.end
-      }
-      
-      const totalHeight = lines.length * h1LineHeight
-      currentY = config.padding.top + (pageHeight - totalHeight) / 2 + h1LineHeight * 0.8
-      
-      for (let i = 0; i < lines.length; i++) {
-        const lineX = config.pageWidth / 2 - widths[i] / 2
-        ctx.fillText(lines[i], lineX, currentY)
-        currentY += h1LineHeight
+      if (hasManualBreak) {
+        // 使用手动换行
+        const lines = text.split(manualBreakPattern).map(s => s.trim()).filter(s => s)
+        const h1LineHeight = 120
+        const totalHeight = lines.length * h1LineHeight
+        currentY = config.padding.top + (pageHeight - totalHeight) / 2 + h1LineHeight * 0.8
+        
+        for (const line of lines) {
+          const lineWidth = ctx.measureText(line).width
+          const lineX = config.pageWidth / 2 - lineWidth / 2
+          ctx.fillText(line, lineX, currentY)
+          currentY += h1LineHeight
+        }
+      } else {
+        // 使用 Pretext 自动换行
+        const prepared = prepareWithSegments(text, font)
+        let cursor: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 }
+        
+        // 计算总行数来垂直居中（H1 使用 1.2 倍行高，基于 100px 字体）
+        const h1LineHeight = 120
+        let lines: string[] = []
+        let widths: number[] = []
+        while (true) {
+          const line = layoutNextLine(prepared, cursor, contentWidth)
+          if (line === null) break
+          lines.push(line.text)
+          widths.push(line.width)
+          cursor = line.end
+        }
+        
+        const totalHeight = lines.length * h1LineHeight
+        currentY = config.padding.top + (pageHeight - totalHeight) / 2 + h1LineHeight * 0.8
+        
+        for (let i = 0; i < lines.length; i++) {
+          const lineX = config.pageWidth / 2 - widths[i] / 2
+          ctx.fillText(lines[i], lineX, currentY)
+          currentY += h1LineHeight
+        }
       }
     } else {
       ctx.fillText(text, x, currentY)

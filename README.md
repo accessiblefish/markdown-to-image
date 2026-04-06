@@ -87,6 +87,29 @@ bun run build  # Production build
 
 ---
 
+## Advanced Usage
+
+### Manual Line Breaks in H1
+
+Control exactly where your title breaks:
+
+```markdown
+# Harness Engineering<br>系列圆桌
+
+# 第一行标题
+第二行标题
+
+# Multi-word<br>Line Break
+```
+
+Both `<br>` and actual newlines work. This ensures word groups stay together.
+
+### Theme-Specific Backgrounds
+
+The **Editorial** theme includes a data stream background pattern (vertical mono text). The content area uses a semi-transparent overlay to ensure readability while maintaining the aesthetic.
+
+---
+
 ## Themes
 
 ### 1. Editorial (Default)
@@ -139,29 +162,6 @@ Clean and refreshing for lifestyle and health content.
 - 📊 **Tables** - Full markdown table support
 - 💬 **Blockquotes** - Card-style with decorative quote marks
 - 📄 **Multi-page** - Automatic pagination for long content
-
----
-
-## Advanced Usage
-
-### Manual Line Breaks in H1
-
-Control exactly where your title breaks:
-
-```markdown
-# Harness Engineering<br>系列圆桌
-
-# 第一行标题
-第二行标题
-
-# Multi-word<br>Line Break
-```
-
-Both `<br>` and actual newlines work. This ensures word groups stay together.
-
-### Theme-Specific Backgrounds
-
-The **Editorial** theme includes a data stream background pattern (vertical mono text). The content area uses a semi-transparent overlay to ensure readability while maintaining the aesthetic.
 
 ---
 
