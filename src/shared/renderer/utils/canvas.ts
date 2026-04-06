@@ -2,16 +2,16 @@
  * Canvas 渲染工具 - 共享
  */
 
-import type { LayoutConfig, Theme } from '../../types'
-import type { Padding } from '../../types'
+import type { LayoutConfig, Theme } from "../../types";
+import type { Padding } from "../../types";
 
 export interface CanvasAndContext {
-  canvas: HTMLCanvasElement
-  ctx: CanvasRenderingContext2D
+  canvas: HTMLCanvasElement;
+  ctx: CanvasRenderingContext2D;
 }
 
 export interface CreateCanvasFn {
-  (width: number, height: number): CanvasAndContext
+  (width: number, height: number): CanvasAndContext;
 }
 
 /**
@@ -20,21 +20,57 @@ export interface CreateCanvasFn {
 export function renderBackground(
   ctx: CanvasRenderingContext2D,
   config: LayoutConfig,
-  theme: Theme
+  theme: Theme,
 ): void {
   // 创建渐变背景
   if (theme.bgGradient && theme.bgGradient.length >= 2) {
-    const gradient = ctx.createLinearGradient(0, 0, config.pageWidth, config.pageHeight)
-    gradient.addColorStop(0, theme.bgGradient[0])
-    gradient.addColorStop(1, theme.bgGradient[1])
-    ctx.fillStyle = gradient
+    const gradient = ctx.createLinearGradient(
+      0,
+      0,
+      config.pageWidth,
+      config.pageHeight,
+    );
+    gradient.addColorStop(0, theme.bgGradient[0]);
+    gradient.addColorStop(1, theme.bgGradient[1]);
+    ctx.fillStyle = gradient;
   } else {
-    ctx.fillStyle = theme.bg
+    ctx.fillStyle = theme.bg;
   }
-  ctx.fillRect(0, 0, config.pageWidth, config.pageHeight)
+  ctx.fillRect(0, 0, config.pageWidth, config.pageHeight);
 
-  // 绘制装饰元素
-  renderDecorativeElements(ctx, config, theme)
+  // 绘制装饰元素（数据流背景）
+  renderDecorativeElements(ctx, config, theme);
+
+  // 如果有背景图案，在正文区域添加半透明遮罩，确保可读性
+  if (theme.bgPattern) {
+    renderContentOverlay(ctx, config, theme);
+  }
+}
+
+/**
+ * 渲染正文区域遮罩 - 确保背景不影响正文可读性
+ */
+function renderContentOverlay(
+  ctx: CanvasRenderingContext2D,
+  config: LayoutConfig,
+  theme: Theme,
+): void {
+  const margin = 65; // 边缘保留数据流效果
+  const x = margin;
+  const y = margin;
+  const width = config.pageWidth - margin * 2;
+  const height = config.pageHeight - margin * 2;
+
+  // 使用背景色或渐变起始色作为遮罩，确保与背景一致
+  ctx.save();
+  // 如果有渐变，使用渐变的起始色；否则使用纯色背景
+  ctx.fillStyle = theme.bgGradient?.[0] ?? theme.bg;
+
+  // @ts-ignore
+  if (ctx.roundRect) ctx.roundRect(x, y, width, height, 16);
+  ctx.fill();
+
+  ctx.restore();
 }
 
 /**
@@ -43,104 +79,124 @@ export function renderBackground(
 function renderDecorativeElements(
   ctx: CanvasRenderingContext2D,
   config: LayoutConfig,
-  theme: Theme
+  theme: Theme,
 ): void {
-  const color = theme.decorativeColor || theme.accent
+  const color = theme.decorativeColor || theme.accent;
 
   // 如果主题有背景图案，优先渲染图案
   if (theme.bgPattern) {
-    renderPatternBackground(ctx, config, theme)
-    return
+    renderPatternBackground(ctx, config, theme);
+    return;
   }
 
   // 右上角大圆装饰
-  ctx.save()
-  ctx.globalAlpha = 0.08
-  ctx.fillStyle = color
-  ctx.beginPath()
-  ctx.arc(config.pageWidth * 0.85, config.pageHeight * 0.15, 150, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.restore()
+  ctx.save();
+  ctx.globalAlpha = 0.08;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(
+    config.pageWidth * 0.85,
+    config.pageHeight * 0.15,
+    150,
+    0,
+    Math.PI * 2,
+  );
+  ctx.fill();
+  ctx.restore();
 
   // 左下角小圆装饰
-  ctx.save()
-  ctx.globalAlpha = 0.05
-  ctx.fillStyle = color
-  ctx.beginPath()
-  ctx.arc(config.pageWidth * 0.1, config.pageHeight * 0.85, 100, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.restore()
+  ctx.save();
+  ctx.globalAlpha = 0.05;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(
+    config.pageWidth * 0.1,
+    config.pageHeight * 0.85,
+    100,
+    0,
+    Math.PI * 2,
+  );
+  ctx.fill();
+  ctx.restore();
 
   // 顶部波浪线装饰
-  ctx.save()
-  ctx.globalAlpha = 0.1
-  ctx.strokeStyle = color
-  ctx.lineWidth = 3
-  ctx.beginPath()
+  ctx.save();
+  ctx.globalAlpha = 0.1;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
   for (let x = 0; x < config.pageWidth; x += 10) {
-    const y = 60 + Math.sin(x * 0.02) * 15
+    const y = 60 + Math.sin(x * 0.02) * 15;
     if (x === 0) {
-      ctx.moveTo(x, y)
+      ctx.moveTo(x, y);
     } else {
-      ctx.lineTo(x, y)
+      ctx.lineTo(x, y);
     }
   }
-  ctx.stroke()
-  ctx.restore()
+  ctx.stroke();
+  ctx.restore();
 
   // 点阵装饰
-  ctx.save()
-  ctx.globalAlpha = 0.06
-  ctx.fillStyle = color
-  const dotSpacing = 40
+  ctx.save();
+  ctx.globalAlpha = 0.06;
+  ctx.fillStyle = color;
+  const dotSpacing = 40;
   for (let x = config.pageWidth - 100; x < config.pageWidth; x += dotSpacing) {
-    for (let y = config.pageHeight - 100; y < config.pageHeight; y += dotSpacing) {
-      ctx.beginPath()
-      ctx.arc(x, y, 3, 0, Math.PI * 2)
-      ctx.fill()
+    for (
+      let y = config.pageHeight - 100;
+      y < config.pageHeight;
+      y += dotSpacing
+    ) {
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
-  ctx.restore()
+  ctx.restore();
 }
 
 /**
- * 渲染图案背景 - 重复文字图案（如参考图中的AI图案）
- * 文字旋转45度，密集排列
+ * 渲染图案背景 - 黑盒数据流效果
+ * 文字从上到下垂直排列，使用 mono 字体，像代码雨/数据流
  */
 function renderPatternBackground(
   ctx: CanvasRenderingContext2D,
   config: LayoutConfig,
-  theme: Theme
+  theme: Theme,
 ): void {
-  const pattern = theme.bgPattern || 'MD'
-  const color = theme.textMuted
+  const pattern = theme.bgPattern || "MD";
+  const color = theme.textMuted;
 
-  ctx.save()
-  ctx.globalAlpha = 0.12
-  ctx.fillStyle = color
-  ctx.font = '12px "Times New Roman", Georgia, serif'
+  ctx.save();
+  ctx.globalAlpha = 0.3;
+  ctx.fillStyle = color;
+  // 使用 mono 字体，更像代码/数据流
+  ctx.font = '18px "SF Mono", "Fira Code", "JetBrains Mono", Monaco, monospace';
 
-  // 旋转45度
-  ctx.translate(config.pageWidth / 2, config.pageHeight / 2)
-  ctx.rotate(-Math.PI / 4)
-  ctx.translate(-config.pageWidth / 2, -config.pageHeight / 2)
+  // 垂直数据流效果 - 多列文字从上到下
+  const colSpacing = 35; // 列间距
+  const lineSpacing = 20; // 行间距
+  const chars = pattern.split("");
 
-  // 密集排列，减小间距
-  const spacingX = 45
-  const spacingY = 25
+  // 绘制多列数据流
+  for (let x = 0; x < config.pageWidth; x += colSpacing) {
+    // 每列起始位置略有不同，营造流动感
+    const offsetY = (x % 3) * 10;
 
-  // 扩大绘制区域以覆盖旋转后的角落
-  const extra = Math.max(config.pageWidth, config.pageHeight)
+    for (let y = -50 + offsetY; y < config.pageHeight + 50; y += lineSpacing) {
+      // 循环使用 pattern 的字符
+      const charIndex = Math.floor((y / lineSpacing) % chars.length);
+      const char = chars[charIndex] || pattern;
 
-  for (let y = -extra; y < config.pageHeight + extra; y += spacingY) {
-    // 奇偶行错开，形成砖墙效果
-    const offsetX = (Math.round(y / spacingY) % 2) * (spacingX / 2)
-    for (let x = -extra; x < config.pageWidth + extra; x += spacingX) {
-      ctx.fillText(pattern, x + offsetX, y)
+      // 随机透明度变化，营造数据流动感
+      const alpha = 0.05 + Math.random() * 0.15;
+      ctx.globalAlpha = alpha;
+
+      ctx.fillText(char, x, y);
     }
   }
 
-  ctx.restore()
+  ctx.restore();
 }
 
 /**
@@ -151,17 +207,17 @@ export function renderPageFooter(
   config: LayoutConfig,
   pageNumber: number,
   fonts: { body: string },
-  textColor: string
+  textColor: string,
 ): void {
-  ctx.fillStyle = textColor
-  ctx.font = `25px ${fonts.body}`
-  ctx.textAlign = 'right'
+  ctx.fillStyle = textColor;
+  ctx.font = `25px ${fonts.body}`;
+  ctx.textAlign = "right";
   ctx.fillText(
     `- ${pageNumber} -`,
     config.pageWidth - config.padding.right,
-    config.pageHeight - 55
-  )
-  ctx.textAlign = 'left'
+    config.pageHeight - 55,
+  );
+  ctx.textAlign = "left";
 }
 
 /**
@@ -173,12 +229,12 @@ export function renderTextLine(
   x: number,
   y: number,
   color: string,
-  font: string
+  font: string,
 ): void {
-  ctx.fillStyle = color
-  ctx.font = font
-  ctx.textBaseline = 'alphabetic'
-  ctx.fillText(text, x, y)
+  ctx.fillStyle = color;
+  ctx.font = font;
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(text, x, y);
 }
 
 /**
@@ -190,39 +246,39 @@ export function renderBlockQuote(
   y: number,
   width: number,
   height: number,
-  theme: Theme
+  theme: Theme,
 ): void {
   // 主背景
-  ctx.fillStyle = theme.quoteBg
-  ctx.beginPath()
+  ctx.fillStyle = theme.quoteBg;
+  ctx.beginPath();
   // @ts-ignore
   if (ctx.roundRect) {
-    ctx.roundRect(x, y, width, height, 12)
+    ctx.roundRect(x, y, width, height, 12);
   } else {
-    ctx.rect(x, y, width, height)
+    ctx.rect(x, y, width, height);
   }
-  ctx.fill()
+  ctx.fill();
 
   // 左边强调条
-  ctx.fillStyle = theme.quoteBorder
-  ctx.beginPath()
+  ctx.fillStyle = theme.quoteBorder;
+  ctx.beginPath();
   // @ts-ignore
   if (ctx.roundRect) {
-    ctx.roundRect(x, y + 16, 4, height - 32, 2)
+    ctx.roundRect(x, y + 16, 4, height - 32, 2);
   } else {
-    ctx.fillRect(x, y + 16, 4, height - 32)
+    ctx.fillRect(x, y + 16, 4, height - 32);
   }
   // @ts-ignore
-  if (ctx.roundRect) ctx.roundRect(x, y + 16, 4, height - 32, 2)
-  ctx.fill()
+  if (ctx.roundRect) ctx.roundRect(x, y + 16, 4, height - 32, 2);
+  ctx.fill();
 
   // 右上角装饰引号
-  ctx.save()
-  ctx.globalAlpha = 0.15
-  ctx.fillStyle = theme.quoteBorder
-  ctx.font = 'bold 60px Georgia, serif'
-  ctx.fillText('"', x + width - 50, y + 50)
-  ctx.restore()
+  ctx.save();
+  ctx.globalAlpha = 0.15;
+  ctx.fillStyle = theme.quoteBorder;
+  ctx.font = "bold 60px Georgia, serif";
+  ctx.fillText('"', x + width - 50, y + 50);
+  ctx.restore();
 }
 
 /**
@@ -234,43 +290,43 @@ export function renderCodeBlock(
   y: number,
   width: number,
   height: number,
-  theme: Theme
+  theme: Theme,
 ): void {
   // 主背景
-  ctx.fillStyle = theme.codeBg
-  ctx.beginPath()
+  ctx.fillStyle = theme.codeBg;
+  ctx.beginPath();
   // @ts-ignore
   if (ctx.roundRect) {
-    ctx.roundRect(x, y, width, height, 12)
+    ctx.roundRect(x, y, width, height, 12);
   } else {
-    ctx.rect(x, y, width, height)
+    ctx.rect(x, y, width, height);
   }
-  ctx.fill()
+  ctx.fill();
 
   // 顶部装饰条
-  ctx.fillStyle = theme.accent
-  ctx.globalAlpha = 0.6
-  ctx.beginPath()
+  ctx.fillStyle = theme.accent;
+  ctx.globalAlpha = 0.6;
+  ctx.beginPath();
   // @ts-ignore
   if (ctx.roundRect) {
-    ctx.roundRect(x, y, width, 4, [12, 12, 0, 0])
+    ctx.roundRect(x, y, width, 4, [12, 12, 0, 0]);
   } else {
-    ctx.fillRect(x, y, width, 4)
+    ctx.fillRect(x, y, width, 4);
   }
   // @ts-ignore
-  if (ctx.roundRect) ctx.roundRect(x, y, width, 4, [12, 12, 0, 0])
-  ctx.fill()
-  ctx.globalAlpha = 1
+  if (ctx.roundRect) ctx.roundRect(x, y, width, 4, [12, 12, 0, 0]);
+  ctx.fill();
+  ctx.globalAlpha = 1;
 
   // 三个点装饰（模拟窗口按钮）
-  const dotY = y + 14
-  const dots = ['#FF5F56', '#FFBD2E', '#27C93F']
+  const dotY = y + 14;
+  const dots = ["#FF5F56", "#FFBD2E", "#27C93F"];
   dots.forEach((color, i) => {
-    ctx.fillStyle = color
-    ctx.beginPath()
-    ctx.arc(x + 20 + i * 16, dotY, 5, 0, Math.PI * 2)
-    ctx.fill()
-  })
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x + 20 + i * 16, dotY, 5, 0, Math.PI * 2);
+    ctx.fill();
+  });
 }
 
 /**
@@ -281,31 +337,31 @@ export function renderHorizontalRule(
   x: number,
   y: number,
   width: number,
-  theme: Theme
+  theme: Theme,
 ): void {
-  const centerX = x + width / 2
+  const centerX = x + width / 2;
 
   // 中心装饰点
-  ctx.fillStyle = theme.accent
-  ctx.beginPath()
-  ctx.arc(centerX, y, 4, 0, Math.PI * 2)
-  ctx.fill()
+  ctx.fillStyle = theme.accent;
+  ctx.beginPath();
+  ctx.arc(centerX, y, 4, 0, Math.PI * 2);
+  ctx.fill();
 
   // 左右线条
-  ctx.strokeStyle = theme.border
-  ctx.lineWidth = 1.5
+  ctx.strokeStyle = theme.border;
+  ctx.lineWidth = 1.5;
 
   // 左线
-  ctx.beginPath()
-  ctx.moveTo(x + 60, y)
-  ctx.lineTo(centerX - 15, y)
-  ctx.stroke()
+  ctx.beginPath();
+  ctx.moveTo(x + 60, y);
+  ctx.lineTo(centerX - 15, y);
+  ctx.stroke();
 
   // 右线
-  ctx.beginPath()
-  ctx.moveTo(centerX + 15, y)
-  ctx.lineTo(x + width - 60, y)
-  ctx.stroke()
+  ctx.beginPath();
+  ctx.moveTo(centerX + 15, y);
+  ctx.lineTo(x + width - 60, y);
+  ctx.stroke();
 }
 
 /**
@@ -317,10 +373,10 @@ export function renderTable(
   y: number,
   width: number,
   rowHeight: number,
-  theme: Theme
+  theme: Theme,
 ): void {
-  ctx.fillStyle = theme.quoteBg
-  ctx.fillRect(x, y, width, rowHeight)
+  ctx.fillStyle = theme.quoteBg;
+  ctx.fillRect(x, y, width, rowHeight);
 }
 
 /**
@@ -331,14 +387,14 @@ export function renderTableRow(
   x: number,
   y: number,
   width: number,
-  theme: Theme
+  theme: Theme,
 ): void {
-  ctx.strokeStyle = theme.border
-  ctx.lineWidth = 1
-  ctx.beginPath()
-  ctx.moveTo(x, y)
-  ctx.lineTo(x + width, y)
-  ctx.stroke()
+  ctx.strokeStyle = theme.border;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + width, y);
+  ctx.stroke();
 }
 
 /**
@@ -350,12 +406,12 @@ export function renderTaskCheckbox(
   y: number,
   checked: boolean,
   theme: Theme,
-  font: string
+  font: string,
 ): void {
-  ctx.fillStyle = theme.textMuted
-  ctx.font = font
-  const symbol = checked ? '☑' : '☐'
-  ctx.fillText(symbol, x, y)
+  ctx.fillStyle = theme.textMuted;
+  ctx.font = font;
+  const symbol = checked ? "☑" : "☐";
+  ctx.fillText(symbol, x, y);
 }
 
 /**
@@ -368,10 +424,10 @@ export function renderListBullet(
   ordered: boolean | undefined,
   index: number,
   theme: Theme,
-  font: string
+  font: string,
 ): void {
-  ctx.fillStyle = theme.accent
-  ctx.font = font
-  const bullet = ordered ? `${index + 1}.` : '•'
-  ctx.fillText(bullet, x, y)
+  ctx.fillStyle = theme.accent;
+  ctx.font = font;
+  const bullet = ordered ? `${index + 1}.` : "•";
+  ctx.fillText(bullet, x, y);
 }

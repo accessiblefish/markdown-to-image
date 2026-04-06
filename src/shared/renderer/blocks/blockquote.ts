@@ -6,7 +6,7 @@ import { prepareWithSegments, layoutNextLine, type LayoutCursor } from '@chenglo
 import type { Block, LayoutConfig, Theme } from '../../types'
 import { renderBlockQuote as renderBlockQuoteBackground } from '../utils/canvas'
 import { QUOTE_PADDING } from '../../config/constants'
-import { getBodyFont } from '../utils/fonts'
+import { getBodyFont, getInlineCodeFont } from '../utils/fonts'
 import { wrapInlineElements } from '../utils/inline-renderer'
 
 export interface BlockQuoteResult {
@@ -81,8 +81,31 @@ export function renderBlockQuote(
         } else if (item.element.type === 'em') {
           ctx.font = getBodyFont(config).replace(/\d+px/, (size: string) => `italic ${size}`)
         } else if (item.element.type === 'code') {
-          ctx.font = `${Math.round(config.fontSize * 0.85)}px monospace`
+          const codeFont = getInlineCodeFont(config)
+          ctx.font = codeFont
+          const text = item.element.content
+          const textWidth = ctx.measureText(text).width
+          const paddingX = 6
+          const paddingY = 3
+          const x = baseX + item.x
+          const y = textY
+
+          // 绘制背景（圆角矩形）
+          ctx.fillStyle = theme.inlineCodeBg
+          ctx.beginPath()
+          // @ts-ignore
+          if (ctx.roundRect) {
+            ctx.roundRect(x - paddingX, y - config.fontSize * 0.75 - paddingY, textWidth + paddingX * 2, config.fontSize * 0.73 + paddingY * 2, 6)
+          } else {
+            ctx.fillRect(x - paddingX, y - config.fontSize * 0.75 - paddingY, textWidth + paddingX * 2, config.fontSize * 0.73 + paddingY * 2)
+          }
+          // @ts-ignore
+          if (ctx.roundRect) ctx.roundRect(x - paddingX, y - config.fontSize * 0.75 - paddingY, textWidth + paddingX * 2, config.fontSize * 0.73 + paddingY * 2, 6)
+          ctx.fill()
+
+          // 绘制文字
           ctx.fillStyle = theme.inlineCodeText
+          ctx.font = codeFont
         } else if (item.element.type === 'link') {
           ctx.fillStyle = theme.link
         }
