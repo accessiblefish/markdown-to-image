@@ -38,7 +38,6 @@ import {
   createLayoutConfig,
   type LayoutConfig,
   type ThemeKey,
-  type FontFamilyKey,
 } from '../shared'
 import { cliAdapter } from './adapter'
 import { SAMPLE_MARKDOWN } from '../config/sample'
@@ -50,7 +49,6 @@ interface CLIOptions {
   width?: number
   height?: number
   fontSize?: number
-  fontFamily?: FontFamilyKey
   quality?: number
   format?: 'png' | 'jpg' | 'webp'
 }
@@ -146,7 +144,6 @@ async function processInput(options: CLIOptions): Promise<void> {
     pageWidth: options.width || 1080,
     pageHeight: options.height || 1440,
     fontSize: options.fontSize || 30,
-    fontFamily: options.fontFamily || 'serif',
   })
 
   // 渲染页面
@@ -196,7 +193,6 @@ async function main(): Promise<void> {
     .option('-W, --width <number>', 'Page width in pixels', '1080')
     .option('-H, --height <number>', 'Page height in pixels', '1440')
     .option('-f, --font-size <number>', 'Base font size', '30')
-    .option('--font <family>', 'Font family: serif, sans, modern', 'serif')
     .option('-q, --quality <number>', 'Image quality (1-100)', '95')
     .option('-F, --format <format>', 'Output format: png, jpg, webp', 'png')
     .action(async (input: string | undefined, options: any) => {
@@ -208,7 +204,6 @@ async function main(): Promise<void> {
           width: parseInt(options.width, 10),
           height: parseInt(options.height, 10),
           fontSize: parseInt(options.fontSize, 10),
-          fontFamily: options.font as FontFamilyKey,
           quality: parseInt(options.quality, 10),
           format: options.format as 'png' | 'jpg' | 'webp',
         })
