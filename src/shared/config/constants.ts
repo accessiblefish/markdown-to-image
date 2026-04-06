@@ -13,16 +13,17 @@ export const PADDING = {
 } as const
 
 // 字体配置 - 三种可选风格
+// 使用系统字体确保最佳渲染质量
 export const FONT_FAMILIES = {
   // 风格1: 优雅衬线 - 适合长文阅读
   serif: {
-    body: '"Source Han Serif SC", "Noto Serif SC", "Songti SC", Georgia, "Times New Roman", serif',
-    heading: '"Source Han Sans SC", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif',
+    body: '"Songti SC", "STSong", "SimSun", "Noto Serif CJK SC", Georgia, serif',
+    heading: '"Heiti SC", "STHeiti", "SimHei", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", sans-serif',
   },
   // 风格2: 简洁无衬线 - 适合现代内容
   sans: {
-    body: '"Source Han Sans SC", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif',
-    heading: '"Source Han Sans SC", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif',
+    body: '"Heiti SC", "STHeiti", "SimHei", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif',
+    heading: '"Heiti SC", "STHeiti", "SimHei", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", sans-serif',
   },
   // 风格3: 现代几何 - 适合科技/设计内容
   modern: {
@@ -34,7 +35,7 @@ export const FONT_FAMILIES = {
 // 向后兼容 - 默认使用衬线风格
 export const FONTS = {
   ...FONT_FAMILIES.serif,
-  mono: '"JetBrains Mono", "Fira Code", "SFMono-Regular", Consolas, monospace',
+  mono: '"SF Mono", "Monaco", "Menlo", "Consolas", monospace',
 }
 
 // 装饰配置

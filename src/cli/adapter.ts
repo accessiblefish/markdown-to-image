@@ -14,10 +14,16 @@ export interface CanvasAndContext {
 
 /**
  * 创建 Canvas 和 Context
+ * 优化字体渲染质量
  */
 export function createCanvas(width: number, height: number): CanvasAndContext {
   const canvas = new Canvas(width, height) as unknown as HTMLCanvasElement
   const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
+  
+  // 设置抗锯齿和质量
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  
   return { canvas, ctx }
 }
 
