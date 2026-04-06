@@ -1,33 +1,90 @@
 /**
  * 行内文本渲染器 - 共享
+ * 使用 Pretext 的 inline-flow API 处理 rich inline 文本
  */
 
-import type { Block, InlineElement, LayoutConfig, Theme, TextAtom, TextFragment, LayoutResult } from '../../types'
+import {
+  prepareInlineFlow,
+  layoutNextInlineFlowLine,
+  type InlineFlowItem,
+  type InlineFlowCursor,
+  type InlineFlowLine,
+} from './inline-flow.js'
+import type { InlineElement, LayoutConfig, Theme } from '../../types'
 import { getBodyFont, getInlineCodeFont } from './fonts'
 
-export function measureText(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  style: 'normal' | 'code' | 'strong' | 'em' | 'link',
-  config: LayoutConfig,
-  theme: Theme
-): number {
-  let font = getBodyFont(config)
-  
-  switch (style) {
+const FLOW_START_CURSOR: InlineFlowCursor = {
+  itemIndex: 0,
+  segmentIndex: 0,
+  graphemeIndex: 0,
+}
+
+function getElementFont(el: InlineElement, config: LayoutConfig): string {
+  switch (el.type) {
     case 'code':
-      font = getInlineCodeFont(config)
-      break
+      return getInlineCodeFont(config)
     case 'strong':
-      font = font.replace(/\d+px/, (size: string) => `bold ${size}`)
-      break
+      return getBodyFont(config).replace(/\d+px/, (size: string) => `bold ${size}`)
     case 'em':
-      font = font.replace(/\d+px/, (size: string) => `italic ${size}`)
-      break
+      return getBodyFont(config).replace(/\d+px/, (size: string) => `italic ${size}`)
+    case 'link':
+    case 'text':
+    default:
+      return getBodyFont(config)
   }
-  
-  ctx.font = font
-  return ctx.measureText(text).width
+}
+
+function inlineElementsToFlowItems(elements: InlineElement[], config: LayoutConfig): InlineFlowItem[] {
+  return elements.map(el => ({
+    text: el.content,
+    font: getElementFont(el, config),
+  }))
+}
+
+export function wrapInlineElements(
+  _ctx: CanvasRenderingContext2D,
+  elements: InlineElement[],
+  maxWidth: number,
+  config: LayoutConfig,
+  _theme: Theme
+): Array<{ element: InlineElement; x: number; y: number }[]> {
+  if (elements.length === 0) return []
+
+  // 转换为 Pretext 的 inline flow items
+  const items = inlineElementsToFlowItems(elements, config)
+  const prepared = prepareInlineFlow(items)
+
+  const lines: Array<{ element: InlineElement; x: number; y: number }[]> = []
+  let cursor = FLOW_START_CURSOR
+
+  while (true) {
+    const line = layoutNextInlineFlowLine(prepared, maxWidth, cursor)
+    if (line === null) break
+
+    const lineElements: { element: InlineElement; x: number; y: number }[] = []
+    let currentX = 0
+
+    for (const fragment of line.fragments) {
+      const originalElement = elements[fragment.itemIndex]
+      if (!originalElement) continue
+
+      currentX += fragment.gapBefore
+      lineElements.push({
+        element: { ...originalElement, content: fragment.text },
+        x: currentX,
+        y: 0,
+      })
+      currentX += fragment.occupiedWidth
+    }
+
+    if (lineElements.length > 0) {
+      lines.push(lineElements)
+    }
+
+    cursor = line.end
+  }
+
+  return lines
 }
 
 export function renderInlineElement(
@@ -73,9 +130,8 @@ export function getInlineElementWidth(
   config: LayoutConfig,
   theme: Theme
 ): number {
-  const style: 'normal' | 'code' | 'strong' | 'em' | 'link' = 
-    element.type === 'text' ? 'normal' : element.type
-  return measureText(ctx, element.content, style, config, theme)
+  ctx.font = getElementFont(element, config)
+  return ctx.measureText(element.content).width
 }
 
 export function renderWrappedInlineElements(
@@ -88,51 +144,15 @@ export function renderWrappedInlineElements(
   theme: Theme,
   lineHeight: number
 ): number {
-  let x = startX
+  const wrapped = wrapInlineElements(ctx, elements, maxWidth, config, theme)
   let y = startY
-  
-  for (const el of elements) {
-    const width = getInlineElementWidth(ctx, el, config, theme)
-    
-    if (x + width > startX + maxWidth && x > startX) {
-      x = startX
-      y += lineHeight
-    }
-    
-    renderInlineElement(ctx, el, x, y, config, theme)
-    x += width
-  }
-  
-  return y
-}
 
-export function wrapInlineElements(
-  ctx: CanvasRenderingContext2D,
-  elements: InlineElement[],
-  maxWidth: number,
-  config: LayoutConfig,
-  theme: Theme
-): Array<{ element: InlineElement; x: number; y: number }[]> {
-  const lines: Array<{ element: InlineElement; x: number; y: number }[]> = []
-  let currentLine: { element: InlineElement; x: number; y: number }[] = []
-  let currentX = 0
-  
-  for (const el of elements) {
-    const width = getInlineElementWidth(ctx, el, config, theme)
-    
-    if (currentX + width > maxWidth && currentLine.length > 0) {
-      lines.push(currentLine)
-      currentLine = []
-      currentX = 0
+  for (const line of wrapped) {
+    for (const item of line) {
+      renderInlineElement(ctx, item.element, startX + item.x, y, config, theme)
     }
-    
-    currentLine.push({ element: el, x: currentX, y: 0 })
-    currentX += width
+    y += lineHeight
   }
-  
-  if (currentLine.length > 0) {
-    lines.push(currentLine)
-  }
-  
-  return lines
+
+  return y
 }

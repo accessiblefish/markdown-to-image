@@ -128,7 +128,7 @@ export async function renderToPages(
  * 与 Web 版保持一致
  */
 export function createLayoutConfig(options: Partial<LayoutConfig> = {}): LayoutConfig {
-  const fontSize = options.fontSize ?? 34
+  const fontSize = options.fontSize ?? 30
   const lineHeight = options.lineHeight ?? Math.round(fontSize * 1.3)
   
   return {

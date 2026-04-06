@@ -2,6 +2,7 @@
  * 引用块渲染器 - 共享
  */
 
+import { prepareWithSegments, layoutNextLine, type LayoutCursor } from '@chenglou/pretext'
 import type { Block, LayoutConfig, Theme } from '../../types'
 import { renderBlockQuote as renderBlockQuoteBackground } from '../utils/canvas'
 import { QUOTE_PADDING } from '../../config/constants'
@@ -31,25 +32,21 @@ export function renderBlockQuote(
     const wrapped = wrapInlineElements(ctx, block.inlineElements, contentWidth, config, theme)
     quoteHeight += wrapped.length * lineHeight
   } else {
-    ctx.font = getBodyFont(config)
+    // 使用 Pretext 计算行数
     const text = block.content
-    const words = text.split('')
-    let line = ''
-    let lineCount = 1
+    const font = getBodyFont(config)
+    const prepared = prepareWithSegments(text, font)
+    let cursor: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 }
+    let lineCount = 0
     
-    for (const char of words) {
-      const testLine = line + char
-      const testWidth = ctx.measureText(testLine).width
-      
-      if (testWidth > contentWidth && line) {
-        lineCount++
-        line = char
-      } else {
-        line = testLine
-      }
+    while (true) {
+      const line = layoutNextLine(prepared, cursor, contentWidth)
+      if (line === null) break
+      lineCount++
+      cursor = line.end
     }
     
-    quoteHeight += lineCount * lineHeight
+    quoteHeight += Math.max(1, lineCount) * lineHeight
   }
   
   // 检查是否需要换页
@@ -72,9 +69,9 @@ export function renderBlockQuote(
   if (block.inlineElements && block.inlineElements.length > 0) {
     const wrapped = wrapInlineElements(ctx, block.inlineElements, contentWidth, config, theme)
     
+    const baseX = quoteX + QUOTE_PADDING + 12 // 左边框偏移
+    
     for (const line of wrapped) {
-      let x = quoteX + QUOTE_PADDING + 12 // 左边框偏移
-      
       for (const item of line) {
         ctx.font = getBodyFont(config)
         ctx.fillStyle = theme.text
@@ -90,37 +87,30 @@ export function renderBlockQuote(
           ctx.fillStyle = theme.link
         }
         
-        ctx.fillText(item.element.content, x, textY)
-        x += ctx.measureText(item.element.content).width
+        // 使用 Pretext 计算的 x 位置（包含 gapBefore）
+        ctx.fillText(item.element.content, baseX + item.x, textY)
         ctx.fillStyle = theme.text
       }
       
       textY += lineHeight
     }
   } else {
+    // 使用 Pretext 渲染文本
     ctx.font = getBodyFont(config)
     ctx.fillStyle = theme.text
     
     const text = block.content
-    const words = text.split('')
-    let line = ''
-    let x = quoteX + QUOTE_PADDING + 12
+    const font = getBodyFont(config)
+    const prepared = prepareWithSegments(text, font)
+    let cursor: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 }
+    const x = quoteX + QUOTE_PADDING + 12
     
-    for (const char of words) {
-      const testLine = line + char
-      const testWidth = ctx.measureText(testLine).width
-      
-      if (testWidth > contentWidth && line) {
-        ctx.fillText(line, x, textY)
-        textY += lineHeight
-        line = char
-      } else {
-        line = testLine
-      }
-    }
-    
-    if (line) {
-      ctx.fillText(line, x, textY)
+    while (true) {
+      const line = layoutNextLine(prepared, cursor, contentWidth)
+      if (line === null) break
+      ctx.fillText(line.text, x, textY)
+      textY += lineHeight
+      cursor = line.end
     }
   }
   

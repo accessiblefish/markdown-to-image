@@ -67,25 +67,24 @@ function renderListItem(
     
     for (let i = 0; i < wrapped.length; i++) {
       const line = wrapped[i]
-      let itemX = textX
       
-      for (const item of line) {
+      for (const lineItem of line) {
         ctx.font = getBodyFont(config)
         ctx.fillStyle = theme.text
         
-        if (item.element.type === 'strong') {
+        if (lineItem.element.type === 'strong') {
           ctx.font = getBodyFont(config).replace(/\d+px/, (size: string) => `bold ${size}`)
-        } else if (item.element.type === 'em') {
+        } else if (lineItem.element.type === 'em') {
           ctx.font = getBodyFont(config).replace(/\d+px/, (size: string) => `italic ${size}`)
-        } else if (item.element.type === 'code') {
+        } else if (lineItem.element.type === 'code') {
           ctx.font = `${Math.round(config.fontSize * 0.85)}px monospace`
           ctx.fillStyle = theme.inlineCodeText
-        } else if (item.element.type === 'link') {
+        } else if (lineItem.element.type === 'link') {
           ctx.fillStyle = theme.link
         }
         
-        ctx.fillText(item.element.content, itemX, currentY)
-        itemX += ctx.measureText(item.element.content).width
+        // 使用 Pretext 计算的 x 位置（包含 gapBefore）
+        ctx.fillText(lineItem.element.content, textX + lineItem.x, currentY)
         ctx.fillStyle = theme.text
       }
       

@@ -52,7 +52,6 @@ export {
 } from './renderer/utils/fonts.js'
 
 export {
-  measureText,
   renderInlineElement,
   getInlineElementWidth,
   renderWrappedInlineElements,

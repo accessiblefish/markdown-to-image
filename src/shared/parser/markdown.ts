@@ -183,10 +183,12 @@ export function extractInlineElements(node: Element): InlineElement[] {
   function walk(node: Node): void {
     if (node.nodeType === 3) { // TEXT_NODE
       const text = node.textContent || ''
+      // 保留所有非空文本，包括前后空格
       if (text && !/^\s*$/.test(text)) {
         elements.push({ type: 'text', content: text })
       } else if (text && elements.length > 0) {
-        elements.push({ type: 'text', content: ' ' })
+        // 保留原始空白内容，不只是单个空格
+        elements.push({ type: 'text', content: text })
       }
     } else if (node.nodeType === 1) { // ELEMENT_NODE
       const el = node as Element

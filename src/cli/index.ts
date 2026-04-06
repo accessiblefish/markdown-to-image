@@ -5,6 +5,30 @@
  * 本地 Markdown 转图片工具
  */
 
+// Pretext 需要 OffscreenCanvas 进行文本测量，在 Node/Bun 环境中提供 polyfill
+import { Canvas } from 'skia-canvas'
+if (typeof globalThis.OffscreenCanvas === 'undefined') {
+  class OffscreenCanvasPolyfill {
+    width: number
+    height: number
+    private canvas: Canvas
+
+    constructor(width: number, height: number) {
+      this.width = width
+      this.height = height
+      this.canvas = new Canvas(width, height) as any
+    }
+
+    getContext(contextId: string): any {
+      if (contextId === '2d') {
+        return this.canvas.getContext('2d')
+      }
+      return null
+    }
+  }
+  globalThis.OffscreenCanvas = OffscreenCanvasPolyfill as any
+}
+
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
 import { resolve, dirname, basename, extname } from 'path'
 import { program } from 'commander'
@@ -119,7 +143,7 @@ async function processInput(options: CLIOptions): Promise<void> {
     theme: options.theme || 'light',
     pageWidth: options.width || 1080,
     pageHeight: options.height || 1440,
-    fontSize: options.fontSize || 34,
+    fontSize: options.fontSize || 30,
   })
 
   // 渲染页面

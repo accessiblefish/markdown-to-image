@@ -126,7 +126,7 @@ export function renderCanvases(
  * 获取当前布局配置
  */
 export function getLayoutConfig(elements: DOMElements): LayoutConfig {
-  const fontSize = parseInt(elements.fontSizeSelect.value, 10) || 34
+  const fontSize = parseInt(elements.fontSizeSelect.value, 10) || 30
 
   return {
     pageWidth: parseInt(elements.pageWidthInput.value, 10) || DEFAULT_PAGE_WIDTH,

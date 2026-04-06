@@ -2,6 +2,7 @@
  * 段落渲染器 - 共享
  */
 
+import { prepareWithSegments, layoutNextLine, type LayoutCursor } from '@chenglou/pretext'
 import type { Block, LayoutConfig, Theme } from '../../types'
 import { getBodyFont } from '../utils/fonts'
 import { wrapInlineElements, renderWrappedInlineElements } from '../utils/inline-renderer'
@@ -37,7 +38,6 @@ export function renderParagraph(
     currentY += 12 // 上边距
     
     for (const line of wrapped) {
-      let x = config.padding.left
       for (const item of line) {
         ctx.font = getBodyFont(config)
         ctx.fillStyle = theme.text
@@ -54,8 +54,8 @@ export function renderParagraph(
           ctx.fillStyle = theme.link
         }
         
-        ctx.fillText(item.element.content, x, currentY)
-        x += ctx.measureText(item.element.content).width
+        // 使用 Pretext 计算的 x 位置（包含 gapBefore）
+        ctx.fillText(item.element.content, config.padding.left + item.x, currentY)
         ctx.fillStyle = theme.text // 重置颜色
       }
       currentY += lineHeight
@@ -63,17 +63,23 @@ export function renderParagraph(
     
     currentY += 12 // 下边距
   } else {
-    // 纯文本渲染
+    // 纯文本渲染 - 使用 Pretext 进行正确的文本换行
     const text = block.content
-    ctx.font = getBodyFont(config)
+    const font = getBodyFont(config)
     
-    const words = text.split(/(\s+)/)
-    let line = ''
-    let lineWidth = 0
+    // 使用 Pretext 准备和布局文本
+    const prepared = prepareWithSegments(text, font)
+    const lines: { text: string; width: number }[] = []
+    let cursor: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 }
     
-    const charWidth = ctx.measureText('中').width
-    const estimatedLines = Math.ceil(text.length * charWidth / contentWidth) + 1
-    const totalHeight = estimatedLines * lineHeight + 24
+    while (true) {
+      const line = layoutNextLine(prepared, cursor, contentWidth)
+      if (line === null) break
+      lines.push({ text: line.text, width: line.width })
+      cursor = line.end
+    }
+    
+    const totalHeight = lines.length * lineHeight + 24
     
     // 检查是否需要换页
     if (currentY + totalHeight > config.pageHeight - config.padding.bottom) {
@@ -84,23 +90,11 @@ export function renderParagraph(
     
     currentY += 12 // 上边距
     
-    for (const word of words) {
-      const testLine = line + word
-      const testWidth = ctx.measureText(testLine).width
-      
-      if (testWidth > contentWidth && line) {
-        ctx.fillStyle = theme.text
-        ctx.fillText(line, config.padding.left, currentY)
-        currentY += lineHeight
-        line = word
-      } else {
-        line = testLine
-      }
-    }
-    
-    if (line) {
-      ctx.fillStyle = theme.text
-      ctx.fillText(line, config.padding.left, currentY)
+    // 渲染每一行
+    ctx.font = font
+    ctx.fillStyle = theme.text
+    for (const line of lines) {
+      ctx.fillText(line.text, config.padding.left, currentY)
       currentY += lineHeight
     }
     

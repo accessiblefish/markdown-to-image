@@ -105,7 +105,7 @@ export function renderCode(
   const contentWidth = config.pageWidth - config.padding.left - config.padding.right
   const codeWidth = contentWidth
   const lineHeight = config.lineHeight * 1.2
-  const codeFont = `${Math.round(config.fontSize * 0.9)}px ${FONTS.mono}`
+  const codeFont = `${Math.round(config.fontSize * 0.9 * 0.9)}px ${FONTS.mono}`
   
   const minLines = Math.min(lines.length, 20)
   const codeHeight = minLines * lineHeight + CODE_PADDING.y * 2

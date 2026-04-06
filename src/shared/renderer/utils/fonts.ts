@@ -5,6 +5,10 @@
 import type { LayoutConfig } from '../../types'
 
 export function getHeadingFont(config: LayoutConfig, level: number = 1): string {
+  // H1 使用特殊样式：Inter 字体，100px，字重 550，字间距 -0.05em
+  if (level === 1) {
+    return `550 100px Inter, -apple-system, BlinkMacSystemFont, sans-serif`
+  }
   const sizes = [42, 36, 30, 26, 22, 20]
   const size = sizes[level - 1] || 20
   const weights = [700, 700, 600, 600, 600, 600]
