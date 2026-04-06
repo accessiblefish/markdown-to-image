@@ -105,26 +105,41 @@ export function renderHeading(
       ctx.fillText(text, x, currentY)
     }
     
-    // H1 后强制换页
-    const pageResult = startNewPage()
-    ctx = pageResult.ctx
-    currentY = pageResult.y
+    // H1 后添加下边距，然后强制换页
+    currentY += 60 // H1 下边距
+    
+    // 检查是否需要换页（如果下边距导致超出页面）
+    if (currentY > config.pageHeight - config.padding.bottom) {
+      const pageResult = startNewPage()
+      ctx = pageResult.ctx
+      currentY = pageResult.y
+    } else {
+      // 不需要换页，但创建新页面给后续内容
+      const pageResult = startNewPage()
+      ctx = pageResult.ctx
+      currentY = pageResult.y
+    }
     
     return { ctx, currentY }
   }
   
-  // 其他标题保持原有逻辑
-  const estimatedHeight = 60
+  // 其他标题（H2-H6）调整边距
+  const marginTop = level === 2 ? 24 : 20
+  const marginBottom = level === 2 ? 40 : 32
+  
+  // 预估高度检查是否需要换页
+  const estimatedHeight = marginTop + config.lineHeight + marginBottom
   if (currentY + estimatedHeight > config.pageHeight - config.padding.bottom) {
     const result = startNewPage()
     ctx = result.ctx
     currentY = result.y
   }
   
-  const marginTop = 24
-  const marginBottom = 20
-  
   currentY += marginTop
+  
+  // 重新设置字体（确保换页后的 ctx 有正确设置）
+  ctx.font = font
+  ctx.fillStyle = theme.textHeading
   
   if (textWidth > contentWidth) {
     const prepared = prepareWithSegments(text, font)
@@ -135,7 +150,7 @@ export function renderHeading(
       const line = layoutNextLine(prepared, cursor, contentWidth)
       if (line === null) break
       ctx.fillText(line.text, x, currentY)
-      currentY += config.lineHeight * 1.5
+      currentY += config.lineHeight * 1.2
       cursor = line.end
     }
   } else {

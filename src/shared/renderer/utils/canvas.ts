@@ -55,7 +55,7 @@ function renderContentOverlay(
   config: LayoutConfig,
   theme: Theme,
 ): void {
-  const margin = 65; // 边缘保留数据流效果
+  const margin = 50; // 边缘保留数据流效果
   const x = margin;
   const y = margin;
   const width = config.pageWidth - margin * 2;
