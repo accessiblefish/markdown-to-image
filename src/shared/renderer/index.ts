@@ -54,7 +54,7 @@ export async function renderToPages(
 
   function startNewPage(): { ctx: CanvasRenderingContext2D; y: number } {
     const { canvas, ctx } = createCanvas(config.pageWidth, config.pageHeight)
-    renderBackground(ctx, config, theme.bg)
+    renderBackground(ctx, config, theme)
     renderPageFooter(ctx, config, context.pages.length + 1, FONTS, theme.textMuted)
 
     context.pages.push(canvas)

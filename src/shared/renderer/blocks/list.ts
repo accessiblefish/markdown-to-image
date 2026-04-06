@@ -27,36 +27,64 @@ function renderListItem(
   let currentY = y
   
   // 渲染符号或复选框
-  ctx.fillStyle = theme.accent
   ctx.font = getBodyFont(config)
   
   if (item.checked !== undefined) {
-    // 任务列表 - 绘制复选框
-    const boxSize = Math.round(config.fontSize * 0.7)
+    // 任务列表 - 绘制更有设计感的复选框
+    const boxSize = Math.round(config.fontSize * 0.75)
     const boxX = x + 4
     const boxY = currentY - boxSize + 4
     
-    // 绘制方框
-    ctx.strokeStyle = theme.textMuted
+    // 绘制圆角方框背景
+    ctx.fillStyle = item.checked ? theme.accent : 'transparent'
+    ctx.beginPath()
+    // @ts-ignore
+    if (ctx.roundRect) {
+      ctx.roundRect(boxX, boxY, boxSize, boxSize, 4)
+    } else {
+      ctx.fillRect(boxX, boxY, boxSize, boxSize)
+    }
+    // @ts-ignore
+    if (ctx.roundRect) ctx.roundRect(boxX, boxY, boxSize, boxSize, 4)
+    ctx.fill()
+    
+    // 绘制边框
+    ctx.strokeStyle = item.checked ? theme.accent : theme.textMuted
     ctx.lineWidth = 2
-    ctx.strokeRect(boxX, boxY, boxSize, boxSize)
+    ctx.beginPath()
+    // @ts-ignore
+    if (ctx.roundRect) {
+      ctx.roundRect(boxX, boxY, boxSize, boxSize, 4)
+    } else {
+      ctx.strokeRect(boxX, boxY, boxSize, boxSize)
+    }
+    // @ts-ignore
+    if (ctx.roundRect) ctx.roundRect(boxX, boxY, boxSize, boxSize, 4)
+    ctx.stroke()
     
     // 如果已选中，绘制对勾
     if (item.checked) {
-      ctx.strokeStyle = theme.accent
-      ctx.lineWidth = 3
+      ctx.strokeStyle = '#FFFFFF'
+      ctx.lineWidth = 2.5
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
       ctx.beginPath()
-      ctx.moveTo(boxX + 3, boxY + boxSize / 2)
-      ctx.lineTo(boxX + boxSize / 2 - 1, boxY + boxSize - 4)
-      ctx.lineTo(boxX + boxSize - 3, boxY + 3)
+      ctx.moveTo(boxX + 4, boxY + boxSize / 2 + 1)
+      ctx.lineTo(boxX + boxSize / 2, boxY + boxSize - 5)
+      ctx.lineTo(boxX + boxSize - 4, boxY + 5)
       ctx.stroke()
     }
   } else if (isOrdered) {
+    // 有序列表使用更醒目的样式
+    ctx.fillStyle = theme.accent
+    ctx.font = `bold ${config.fontSize * 0.85}px ${getBodyFont(config).split('px')[1] || 'sans-serif'}`
     ctx.fillText(`${index + 1}.`, x, currentY)
   } else {
-    ctx.fillText('•', x + 8, currentY)
+    // 无序列表使用更精致的圆点
+    ctx.fillStyle = theme.accent
+    ctx.beginPath()
+    ctx.arc(x + 10, currentY - 5, 4, 0, Math.PI * 2)
+    ctx.fill()
   }
   
   // 渲染内容

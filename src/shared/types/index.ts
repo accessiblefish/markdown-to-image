@@ -6,6 +6,8 @@ export type ThemeKey = 'light' | 'dark' | 'sepia'
 
 export interface Theme {
   bg: string
+  bgGradient?: string[] // 渐变背景色数组 [start, end]
+  decorativeColor?: string // 装饰元素颜色
   text: string
   textHeading: string
   textMuted: string

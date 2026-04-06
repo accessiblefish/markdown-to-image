@@ -5,19 +5,21 @@
 import type { LayoutConfig } from '../../types'
 
 export function getHeadingFont(config: LayoutConfig, level: number = 1): string {
-  // H1 使用特殊样式：Inter 字体，100px，字重 550，字间距 -0.05em
+  // H1 使用特殊样式：粗体无衬线字体，100px，字重 700
   if (level === 1) {
-    return `550 100px Inter, -apple-system, BlinkMacSystemFont, sans-serif`
+    return `700 100px "Source Han Sans SC", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif`
   }
+  // 其他标题使用优雅的无衬线字体
   const sizes = [42, 36, 30, 26, 22, 20]
   const size = sizes[level - 1] || 20
   const weights = [700, 700, 600, 600, 600, 600]
   const weight = weights[level - 1] || 600
-  return `${weight} ${size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`
+  return `${weight} ${size}px "Source Han Sans SC", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif`
 }
 
 export function getBodyFont(config: LayoutConfig): string {
-  return `${config.fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif`
+  // 正文使用衬线字体，更有阅读感
+  return `${config.fontSize}px "Source Han Serif SC", "Noto Serif SC", "Songti SC", "SimSun", serif`
 }
 
 export function getCodeFont(config: LayoutConfig): string {

@@ -131,11 +131,13 @@ export function renderCode(
     ctx.textAlign = 'left'
   }
   
-  // 渲染代码内容
+  // 渲染代码内容（增加顶部间距给装饰条留空间）
   ctx.font = codeFont
-  const isDark = theme.codeBg === '#1e293b' || theme.codeBg === '#2d2a26'
+  const isDark = theme.codeBg === '#1e293b' || theme.codeBg === '#2d2a26' || theme.codeBg === '#0F0F23' || theme.codeBg === '#2C3E2C'
   
-  let y = codeY + CODE_PADDING.y + lineHeight * 0.8
+  // 顶部装饰条占用了一些空间，所以代码内容向下偏移
+  const topDecorationSpace = 32
+  let y = codeY + CODE_PADDING.y + topDecorationSpace + lineHeight * 0.8
   let maxLines = Math.floor((codeHeight - CODE_PADDING.y * 2) / lineHeight)
   
   for (let i = 0; i < Math.min(lines.length, maxLines); i++) {
