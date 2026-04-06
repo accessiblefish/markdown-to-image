@@ -47,6 +47,12 @@ function renderDecorativeElements(
 ): void {
   const color = theme.decorativeColor || theme.accent
 
+  // 如果主题有背景图案，优先渲染图案
+  if (theme.bgPattern) {
+    renderPatternBackground(ctx, config, theme)
+    return
+  }
+
   // 右上角大圆装饰
   ctx.save()
   ctx.globalAlpha = 0.08
@@ -94,6 +100,39 @@ function renderDecorativeElements(
       ctx.fill()
     }
   }
+  ctx.restore()
+}
+
+/**
+ * 渲染图案背景 - 重复文字图案（如参考图中的AI图案）
+ */
+function renderPatternBackground(
+  ctx: CanvasRenderingContext2D,
+  config: LayoutConfig,
+  theme: Theme
+): void {
+  const pattern = theme.bgPattern || 'MD'
+  const color = theme.textMuted
+
+  ctx.save()
+  ctx.globalAlpha = 0.08
+  ctx.fillStyle = color
+  ctx.font = '14px "Times New Roman", serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+
+  // 45度倾斜排列
+  const spacingX = 35
+  const spacingY = 50
+
+  for (let y = -50; y < config.pageHeight + 50; y += spacingY) {
+    // 奇偶行错开
+    const offsetX = (y / spacingY) % 2 === 0 ? 0 : spacingX / 2
+    for (let x = -50; x < config.pageWidth + 50; x += spacingX) {
+      ctx.fillText(pattern, x + offsetX, y)
+    }
+  }
+
   ctx.restore()
 }
 

@@ -96,6 +96,25 @@ export const THEMES: Record<string, Theme> = {
     link: '#319795',
     accent: '#38B2AC',
   },
+  // 新增：编辑风格 - 参考腾讯研究院海报
+  editorial: {
+    bg: '#F5F0E8',
+    bgGradient: ['#F5F0E8', '#EDE6D6'],
+    decorativeColor: '#C75B39',
+    bgPattern: 'MD', // 背景图案文字
+    text: '#2C2824',
+    textHeading: '#1A1714',
+    textMuted: '#6B6560',
+    border: '#D4C8B8',
+    codeBg: '#2C2824',
+    codeText: '#E8E0D4',
+    inlineCodeBg: '#E8E0D4',
+    inlineCodeText: '#C75B39',
+    quoteBg: '#EDE6D6',
+    quoteBorder: '#C75B39',
+    link: '#C75B39',
+    accent: '#C75B39',
+  },
 }
 
 export type ThemeKey = keyof typeof THEMES

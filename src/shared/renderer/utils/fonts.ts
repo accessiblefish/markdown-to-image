@@ -19,7 +19,8 @@ export function getHeadingFont(config: LayoutConfig, level: number = 1): string 
 
 export function getBodyFont(config: LayoutConfig): string {
   // 正文使用衬线字体，更有阅读感
-  return `${config.fontSize}px "Source Han Serif SC", "Noto Serif SC", "Songti SC", "SimSun", serif`
+  // 提供系统字体作为后备，确保字体大小正确渲染
+  return `${config.fontSize}px "Source Han Serif SC", "Noto Serif SC", "Songti SC", Georgia, "Times New Roman", serif`
 }
 
 export function getCodeFont(config: LayoutConfig): string {

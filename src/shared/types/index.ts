@@ -8,6 +8,7 @@ export interface Theme {
   bg: string
   bgGradient?: string[] // 渐变背景色数组 [start, end]
   decorativeColor?: string // 装饰元素颜色
+  bgPattern?: string // 背景图案文字（如 "AI"）
   text: string
   textHeading: string
   textMuted: string
