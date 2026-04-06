@@ -72,6 +72,8 @@ export interface Padding {
   left: number
 }
 
+export type FontFamilyKey = 'serif' | 'sans' | 'modern'
+
 export interface LayoutConfig {
   pageWidth: number
   pageHeight: number
@@ -79,6 +81,7 @@ export interface LayoutConfig {
   fontSize: number
   lineHeight: number
   theme: ThemeKey
+  fontFamily?: FontFamilyKey
 }
 
 export type FontType = 'body' | 'heading' | 'code' | 'inlineCode' | 'small'
