@@ -1,8 +1,8 @@
 # Markdown to Image
 
-Convert Markdown to beautiful images. No browser required.
+Convert Markdown to beautiful, social-media-ready images. No browser required.
 
-**Web UI + CLI** · **Three themes** · **Code highlighting** · **Multi-page export**
+**Web UI + CLI** · **6 Editorial Themes** · **Typography-First** · **Multi-page Export**
 
 ![Bun](https://img.shields.io/badge/Bun-1.0%2B-black?logo=bun)
 
@@ -22,7 +22,7 @@ Convert Markdown to beautiful images. No browser required.
 bun install
 
 # Method 1: Direct script (easiest)
-./md2img input.md          # Auto-named: input.png
+./md2img input.md              # Auto-named: input.png
 ./md2img input.md -o out.png   # Custom name
 
 # Method 2: Global install
@@ -30,8 +30,8 @@ bun link
 md2img input.md
 
 # Method 3: Make commands
-make demo                  # Generate sample
-make convert FILE=readme.md   # Convert file
+make demo                      # Generate sample
+make convert FILE=readme.md    # Convert file
 
 # Web UI
 bun dev
@@ -53,8 +53,13 @@ That's it. Open `output.png` or visit `http://localhost:3000`.
 # Custom output name
 ./md2img doc.md -o my-doc.png
 
-# Dark theme, JPG format
-./md2img doc.md -t dark -F jpg
+# Editorial theme (default), JPG format
+./md2img doc.md -F jpg
+
+# Other themes
+./md2img doc.md -t dark        # Deep sea blue-purple
+./md2img doc.md -t mint        # Fresh mint green
+./md2img doc.md -t neon        # Cyberpunk neon
 
 # After "bun link", use anywhere
 md2img file.md
@@ -65,10 +70,10 @@ md2img file.md
 | Flag | Description | Default |
 |------|-------------|---------|
 | `-o, --output` | Output path (optional) | Based on input filename |
-| `-t, --theme` | light / dark / sepia | light |
+| `-t, --theme` | editorial / light / dark / sepia / neon / mint | editorial |
 | `-W, --width` | Page width (px) | 1080 |
 | `-H, --height` | Page height (px) | 1440 |
-| `-f, --font-size` | Base font size | 34 |
+| `-f, --font-size` | Base font size | 30 |
 | `-F, --format` | png / jpg / webp | png |
 
 Global install: `bun link` then `md2img file.md`
@@ -82,20 +87,89 @@ bun run build  # Production build
 
 ---
 
+## Themes
+
+### 1. Editorial (Default)
+Inspired by editorial design and magazines. Cream background with data stream pattern.
+- **Best for:** Long-form articles, essays, professional content
+- **Colors:** Warm cream (#F5F0E8) with terracotta accents
+- **Font pairing:** Source Han Serif (body) + Source Han Sans (headings)
+
+### 2. Light (Vibrant Orange-Pink)
+Energetic and friendly, perfect for lifestyle content.
+- **Best for:** Xiaohongshu, Instagram, casual posts
+
+### 3. Dark (Deep Sea Blue-Purple)
+Professional and sleek for technical content.
+- **Best for:** Twitter, technical blogs, developer content
+
+### 4. Sepia (Forest Green)
+Natural and calming, great for WeChat articles.
+- **Best for:** WeChat Official Accounts, wellness content
+
+### 5. Neon (Cyberpunk Purple)
+Bold and trendy for younger audiences.
+- **Best for:** Youth culture, tech trends, creative content
+
+### 6. Mint (Fresh Mint Green)
+Clean and refreshing for lifestyle and health content.
+- **Best for:** Health, lifestyle, minimal aesthetics
+
+---
+
 ## Features
 
-- ✨ **Clean typography** - Powered by [Pretext](https://github.com/chenglou/pretext) layout engine
-- 🎨 **Three themes** - Light, Dark, Sepia
-- 💻 **Code blocks** - Syntax highlighting
-- ☑️ **Task lists** - Checkboxes render correctly
+### Typography
+- ✨ **Editorial typography** - Source Han Serif for body, Source Han Sans for headings
+- 📐 **Pretext layout engine** - Perfect line breaking for CJK and English text
+- 🎯 **H1 titles** - Dedicated full page, centered, with manual line-break support
+
+### Code & Inline Elements
+- 💻 **Code blocks** - Syntax highlighting with macOS-style window buttons
+- `inline code` - Styled with background, padding, and rounded corners
+- 🔗 **Smart links** - Proper spacing and styling
+
+### Visual Design
+- 🎨 **Data stream background** - Editorial theme features animated code-rain pattern
+- 📐 **Content overlay** - Ensures text readability over decorative backgrounds
+- 🖼️ **Decorative elements** - Geometric shapes, gradients, and patterns per theme
+
+### Content Support
+- ☑️ **Task lists** - Styled checkboxes
 - 📊 **Tables** - Full markdown table support
+- 💬 **Blockquotes** - Card-style with decorative quote marks
 - 📄 **Multi-page** - Automatic pagination for long content
-- 🖥️ **Web + CLI** - Use in browser or command line
+
+---
+
+## Advanced Usage
+
+### Manual Line Breaks in H1
+
+Control exactly where your title breaks:
+
+```markdown
+# Harness Engineering<br>系列圆桌
+
+# 第一行标题
+第二行标题
+
+# Multi-word<br>Line Break
+```
+
+Both `<br>` and actual newlines work. This ensures word groups stay together.
+
+### Theme-Specific Backgrounds
+
+The **Editorial** theme includes a data stream background pattern (vertical mono text). The content area uses a semi-transparent overlay to ensure readability while maintaining the aesthetic.
+
+---
 
 ## Tech Stack
 
 - **Runtime:** [Bun](https://bun.sh) 1.0+
-- **Layout:** Pretext
+- **Typography:** [Pretext](https://github.com/chenglou/pretext) layout engine
+- **Fonts:** Source Han Serif SC, Source Han Sans SC
 - **Parser:** micromark + GFM
 - **Canvas:** skia-canvas
 - **Build:** Vite
@@ -104,9 +178,12 @@ bun run build  # Production build
 
 ```
 src/
-├── cli/           # CLI tool
-├── shared/        # Core renderer (used by Web & CLI)
-├── config/sample.ts   # Default markdown content
+├── cli/              # CLI tool
+├── shared/           # Core renderer (used by Web & CLI)
+│   ├── config/themes.ts    # 6 theme definitions
+│   ├── renderer/blocks/    # Block renderers (heading, paragraph, code...)
+│   └── parser/markdown.ts  # Markdown parser
+├── config/sample.ts  # Default markdown content
 └── (web files)
 ```
 
