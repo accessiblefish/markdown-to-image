@@ -105,6 +105,7 @@ function renderDecorativeElements(
 
 /**
  * 渲染图案背景 - 重复文字图案（如参考图中的AI图案）
+ * 文字旋转45度，密集排列
  */
 function renderPatternBackground(
   ctx: CanvasRenderingContext2D,
@@ -115,20 +116,26 @@ function renderPatternBackground(
   const color = theme.textMuted
 
   ctx.save()
-  ctx.globalAlpha = 0.08
+  ctx.globalAlpha = 0.12
   ctx.fillStyle = color
-  ctx.font = '14px "Times New Roman", serif'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
+  ctx.font = '12px "Times New Roman", Georgia, serif'
 
-  // 45度倾斜排列
-  const spacingX = 35
-  const spacingY = 50
+  // 旋转45度
+  ctx.translate(config.pageWidth / 2, config.pageHeight / 2)
+  ctx.rotate(-Math.PI / 4)
+  ctx.translate(-config.pageWidth / 2, -config.pageHeight / 2)
 
-  for (let y = -50; y < config.pageHeight + 50; y += spacingY) {
-    // 奇偶行错开
-    const offsetX = (y / spacingY) % 2 === 0 ? 0 : spacingX / 2
-    for (let x = -50; x < config.pageWidth + 50; x += spacingX) {
+  // 密集排列，减小间距
+  const spacingX = 45
+  const spacingY = 25
+
+  // 扩大绘制区域以覆盖旋转后的角落
+  const extra = Math.max(config.pageWidth, config.pageHeight)
+
+  for (let y = -extra; y < config.pageHeight + extra; y += spacingY) {
+    // 奇偶行错开，形成砖墙效果
+    const offsetX = (Math.round(y / spacingY) % 2) * (spacingX / 2)
+    for (let x = -extra; x < config.pageWidth + extra; x += spacingX) {
       ctx.fillText(pattern, x + offsetX, y)
     }
   }

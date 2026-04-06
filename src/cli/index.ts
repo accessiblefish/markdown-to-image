@@ -140,7 +140,7 @@ async function processInput(options: CLIOptions): Promise<void> {
 
   // 创建配置
   const config: LayoutConfig = createLayoutConfig({
-    theme: options.theme || 'light',
+    theme: options.theme || 'editorial',
     pageWidth: options.width || 1080,
     pageHeight: options.height || 1440,
     fontSize: options.fontSize || 30,
@@ -189,7 +189,7 @@ async function main(): Promise<void> {
     .version('1.0.0')
     .argument('[input]', 'Input Markdown file path (uses sample if not provided)')
     .option('-o, --output <path>', 'Output image path (optional)')
-    .option('-t, --theme <theme>', 'Theme: light, dark, sepia, neon, mint, editorial', 'light')
+    .option('-t, --theme <theme>', 'Theme: light, dark, sepia, neon, mint, editorial', 'editorial')
     .option('-W, --width <number>', 'Page width in pixels', '1080')
     .option('-H, --height <number>', 'Page height in pixels', '1440')
     .option('-f, --font-size <number>', 'Base font size', '34')

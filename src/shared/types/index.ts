@@ -2,7 +2,7 @@
  * 核心类型定义 - 共享
  */
 
-export type ThemeKey = 'light' | 'dark' | 'sepia'
+export type ThemeKey = 'light' | 'dark' | 'sepia' | 'neon' | 'mint' | 'editorial'
 
 export interface Theme {
   bg: string

@@ -28,5 +28,6 @@ export function getCodeFont(config: LayoutConfig): string {
 }
 
 export function getInlineCodeFont(config: LayoutConfig): string {
-  return `${Math.round(config.fontSize * 0.85)}px "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace`
+  // inline code 使用与正文相同的字体大小
+  return `${config.fontSize}px "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace`
 }

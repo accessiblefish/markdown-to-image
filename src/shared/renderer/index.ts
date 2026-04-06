@@ -137,7 +137,7 @@ export function createLayoutConfig(options: Partial<LayoutConfig> = {}): LayoutC
     padding: PADDING,
     fontSize,
     lineHeight,
-    theme: 'light',
+    theme: 'editorial',
     ...options,
   }
 }
