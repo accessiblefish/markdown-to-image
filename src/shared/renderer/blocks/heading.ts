@@ -15,6 +15,39 @@ export interface HeadingResult {
   currentY: number
 }
 
+function getPosterLines(
+  text: string,
+  font: string,
+  maxWidth: number
+): Array<{ text: string; width: number }> {
+  const manualBreakPattern = /<br\s*\/?>|\n/g
+  if (manualBreakPattern.test(text)) {
+    const canvas = new OffscreenCanvas(1, 1)
+    const measure = canvas.getContext('2d')
+    if (!measure) return []
+    measure.font = font
+
+    return text
+      .split(manualBreakPattern)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => ({ text: line, width: measure.measureText(line).width }))
+  }
+
+  const prepared = prepareWithSegments(text, font)
+  let cursor: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 }
+  const lines: Array<{ text: string; width: number }> = []
+
+  while (true) {
+    const line = layoutNextLine(prepared, cursor, maxWidth)
+    if (line === null) break
+    lines.push({ text: line.text, width: line.width })
+    cursor = line.end
+  }
+
+  return lines
+}
+
 export function renderHeading(
   ctx: CanvasRenderingContext2D,
   block: Block,
@@ -46,63 +79,22 @@ export function renderHeading(
     ctx.font = font
     ctx.fillStyle = theme.textHeading
     
-    // 重新测量文本宽度（使用新 ctx）
-    const textWidth = ctx.measureText(text).width
-    
-    // 垂直居中
-    const pageHeight = config.pageHeight - config.padding.top - config.padding.bottom
-    currentY = config.padding.top + pageHeight / 2
-    
-    // 水平居中
-    const x = config.pageWidth / 2 - textWidth / 2
-    
-    // 如果标题太长需要换行
-    if (textWidth > contentWidth) {
-      // 优先检查是否有手动换行标记（<br>、<br/>、\n）
-      const manualBreakPattern = /<br\s*\/?>|\n/g
-      const hasManualBreak = manualBreakPattern.test(text)
-      
-      if (hasManualBreak) {
-        // 使用手动换行
-        const lines = text.split(manualBreakPattern).map(s => s.trim()).filter(s => s)
-        const h1LineHeight = 120
-        const totalHeight = lines.length * h1LineHeight
-        currentY = config.padding.top + (pageHeight - totalHeight) / 2 + h1LineHeight * 0.8
-        
-        for (const line of lines) {
-          const lineWidth = ctx.measureText(line).width
-          const lineX = config.pageWidth / 2 - lineWidth / 2
-          ctx.fillText(line, lineX, currentY)
-          currentY += h1LineHeight
-        }
-      } else {
-        // 使用 Pretext 自动换行
-        const prepared = prepareWithSegments(text, font)
-        let cursor: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 }
-        
-        // 计算总行数来垂直居中（H1 使用 1.2 倍行高，基于 100px 字体）
-        const h1LineHeight = 120
-        let lines: string[] = []
-        let widths: number[] = []
-        while (true) {
-          const line = layoutNextLine(prepared, cursor, contentWidth)
-          if (line === null) break
-          lines.push(line.text)
-          widths.push(line.width)
-          cursor = line.end
-        }
-        
-        const totalHeight = lines.length * h1LineHeight
-        currentY = config.padding.top + (pageHeight - totalHeight) / 2 + h1LineHeight * 0.8
-        
-        for (let i = 0; i < lines.length; i++) {
-          const lineX = config.pageWidth / 2 - widths[i] / 2
-          ctx.fillText(lines[i], lineX, currentY)
-          currentY += h1LineHeight
-        }
+    const posterMaxWidth = Math.min(contentWidth, config.pageWidth * 0.74)
+    const lines = getPosterLines(text, font, posterMaxWidth)
+    const h1LineHeight = 168
+    const blockTop = 380
+    const startX = config.padding.left + 38
+    let textY = blockTop
+
+    if (lines.length > 0) {
+      for (const line of lines) {
+        ctx.fillText(line.text, startX, textY)
+        textY += h1LineHeight
       }
+      currentY = textY
     } else {
-      ctx.fillText(text, x, currentY)
+      currentY = blockTop
+      ctx.fillText(text, startX, currentY)
     }
     
     // H1 后添加下边距，然后强制换页

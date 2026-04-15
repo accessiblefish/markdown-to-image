@@ -2,7 +2,7 @@
  * 核心类型定义 - 共享
  */
 
-export type ThemeKey = 'light' | 'dark' | 'sepia' | 'neon' | 'mint' | 'editorial'
+export type ThemeKey = 'mint' | 'editorial'
 
 export interface Theme {
   bg: string
@@ -13,6 +13,7 @@ export interface Theme {
   textHeading: string
   textMuted: string
   border: string
+  tableBorder?: string
   codeBg: string
   codeText: string
   inlineCodeBg: string
@@ -46,6 +47,7 @@ export type BlockType =
   | 'listItem'
   | 'hr'
   | 'table'
+  | 'image'
   | 'taskList'
 
 export interface ListItem {
@@ -63,6 +65,8 @@ export interface Block {
   ordered?: boolean
   items?: ListItem[]
   rows?: string[][]
+  src?: string
+  alt?: string
 }
 
 export interface Padding {
@@ -82,6 +86,7 @@ export interface LayoutConfig {
   lineHeight: number
   theme: ThemeKey
   fontFamily?: FontFamilyKey
+  assetBasePath?: string
 }
 
 export type FontType = 'body' | 'heading' | 'code' | 'inlineCode' | 'small'
@@ -117,4 +122,5 @@ export interface LayoutResult {
 export interface PlatformAdapter {
   createCanvas(width: number, height: number): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D }
   parseHTML(html: string): Element
+  loadImage(src: string, basePath?: string): Promise<{ image: CanvasImageSource; width: number; height: number }>
 }

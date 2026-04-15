@@ -38,6 +38,8 @@ export function renderBackground(
   }
   ctx.fillRect(0, 0, config.pageWidth, config.pageHeight);
 
+  renderPageGrid(ctx, config, theme);
+
   // 绘制装饰元素（数据流背景）
   renderDecorativeElements(ctx, config, theme);
 
@@ -45,6 +47,34 @@ export function renderBackground(
   if (theme.bgPattern) {
     renderContentOverlay(ctx, config, theme);
   }
+}
+
+function renderPageGrid(
+  ctx: CanvasRenderingContext2D,
+  config: LayoutConfig,
+  theme: Theme,
+): void {
+  ctx.save();
+  ctx.strokeStyle = theme.accent;
+  ctx.globalAlpha = theme.bgPattern ? 0.08 : 0.12;
+  ctx.lineWidth = 1;
+
+  const spacing = 44;
+  for (let x = 40; x < config.pageWidth - 40; x += spacing) {
+    ctx.beginPath();
+    ctx.moveTo(x, 40);
+    ctx.lineTo(x, config.pageHeight - 40);
+    ctx.stroke();
+  }
+
+  for (let y = 40; y < config.pageHeight - 40; y += spacing) {
+    ctx.beginPath();
+    ctx.moveTo(40, y);
+    ctx.lineTo(config.pageWidth - 40, y);
+    ctx.stroke();
+  }
+
+  ctx.restore();
 }
 
 /**
@@ -81,78 +111,11 @@ function renderDecorativeElements(
   config: LayoutConfig,
   theme: Theme,
 ): void {
-  const color = theme.decorativeColor || theme.accent;
-
   // 如果主题有背景图案，优先渲染图案
   if (theme.bgPattern) {
     renderPatternBackground(ctx, config, theme);
     return;
   }
-
-  // 右上角大圆装饰
-  ctx.save();
-  ctx.globalAlpha = 0.08;
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.arc(
-    config.pageWidth * 0.85,
-    config.pageHeight * 0.15,
-    150,
-    0,
-    Math.PI * 2,
-  );
-  ctx.fill();
-  ctx.restore();
-
-  // 左下角小圆装饰
-  ctx.save();
-  ctx.globalAlpha = 0.05;
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.arc(
-    config.pageWidth * 0.1,
-    config.pageHeight * 0.85,
-    100,
-    0,
-    Math.PI * 2,
-  );
-  ctx.fill();
-  ctx.restore();
-
-  // 顶部波浪线装饰
-  ctx.save();
-  ctx.globalAlpha = 0.1;
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  for (let x = 0; x < config.pageWidth; x += 10) {
-    const y = 60 + Math.sin(x * 0.02) * 15;
-    if (x === 0) {
-      ctx.moveTo(x, y);
-    } else {
-      ctx.lineTo(x, y);
-    }
-  }
-  ctx.stroke();
-  ctx.restore();
-
-  // 点阵装饰
-  ctx.save();
-  ctx.globalAlpha = 0.06;
-  ctx.fillStyle = color;
-  const dotSpacing = 40;
-  for (let x = config.pageWidth - 100; x < config.pageWidth; x += dotSpacing) {
-    for (
-      let y = config.pageHeight - 100;
-      y < config.pageHeight;
-      y += dotSpacing
-    ) {
-      ctx.beginPath();
-      ctx.arc(x, y, 3, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-  ctx.restore();
 }
 
 /**
@@ -348,8 +311,9 @@ export function renderHorizontalRule(
   ctx.fill();
 
   // 左右线条
-  ctx.strokeStyle = theme.border;
+  ctx.strokeStyle = theme.accent;
   ctx.lineWidth = 1.5;
+  ctx.globalAlpha = 0.28;
 
   // 左线
   ctx.beginPath();
@@ -362,6 +326,7 @@ export function renderHorizontalRule(
   ctx.moveTo(centerX + 15, y);
   ctx.lineTo(x + width - 60, y);
   ctx.stroke();
+  ctx.globalAlpha = 1;
 }
 
 /**
@@ -389,7 +354,7 @@ export function renderTableRow(
   width: number,
   theme: Theme,
 ): void {
-  ctx.strokeStyle = theme.border;
+  ctx.strokeStyle = theme.tableBorder || theme.border;
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(x, y);

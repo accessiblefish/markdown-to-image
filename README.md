@@ -2,7 +2,7 @@
 
 Convert Markdown to beautiful, social-media-ready images. No browser required.
 
-**Web UI + CLI** · **6 Editorial Themes** · **Typography-First** · **Multi-page Export**
+**Web UI + CLI** · **2 Reading Themes** · **Typography-First** · **Multi-page Export**
 
 ![Bun](https://img.shields.io/badge/Bun-1.0%2B-black?logo=bun)
 
@@ -56,10 +56,8 @@ That's it. Open `output.png` or visit `http://localhost:3000`.
 # Editorial theme (default), JPG format
 ./md2img doc.md -F jpg
 
-# Other themes
-./md2img doc.md -t dark        # Deep sea blue-purple
-./md2img doc.md -t mint        # Fresh mint green
-./md2img doc.md -t neon        # Cyberpunk neon
+# Other theme
+./md2img doc.md -t mint        # Quiet blog-inspired mint
 
 # After "bun link", use anywhere
 md2img file.md
@@ -70,7 +68,7 @@ md2img file.md
 | Flag | Description | Default |
 |------|-------------|---------|
 | `-o, --output` | Output path (optional) | Based on input filename |
-| `-t, --theme` | editorial / light / dark / sepia / neon / mint | editorial |
+| `-t, --theme` | editorial / mint | editorial |
 | `-W, --width` | Page width (px) | 1080 |
 | `-H, --height` | Page height (px) | 1440 |
 | `-f, --font-size` | Base font size | 30 |
@@ -118,25 +116,11 @@ Inspired by editorial design and magazines. Cream background with data stream pa
 - **Colors:** Warm cream (#F5F0E8) with terracotta accents
 - **Font pairing:** Source Han Serif (body) + Source Han Sans (headings)
 
-### 2. Light (Vibrant Orange-Pink)
-Energetic and friendly, perfect for lifestyle content.
-- **Best for:** Xiaohongshu, Instagram, casual posts
-
-### 3. Dark (Deep Sea Blue-Purple)
-Professional and sleek for technical content.
-- **Best for:** Twitter, technical blogs, developer content
-
-### 4. Sepia (Forest Green)
-Natural and calming, great for WeChat articles.
-- **Best for:** WeChat Official Accounts, wellness content
-
-### 5. Neon (Cyberpunk Purple)
-Bold and trendy for younger audiences.
-- **Best for:** Youth culture, tech trends, creative content
-
-### 6. Mint (Fresh Mint Green)
-Clean and refreshing for lifestyle and health content.
-- **Best for:** Health, lifestyle, minimal aesthetics
+### 2. Mint
+Inspired by calm personal blog templates with a quiet mint-tinted reading surface.
+- **Best for:** Blog posts, essays, notes, personal publishing
+- **Colors:** Soft mint gray, muted green accents, low-noise page background
+- **Feel:** Clean, restrained, and optimized for reading comfort
 
 ---
 
@@ -155,7 +139,7 @@ Clean and refreshing for lifestyle and health content.
 ### Visual Design
 - 🎨 **Data stream background** - Editorial theme features animated code-rain pattern
 - 📐 **Content overlay** - Ensures text readability over decorative backgrounds
-- 🖼️ **Decorative elements** - Geometric shapes, gradients, and patterns per theme
+- 🖼️ **Decorative elements** - Minimal background treatment with restrained theme accents
 
 ### Content Support
 - ☑️ **Task lists** - Styled checkboxes
@@ -180,7 +164,7 @@ Clean and refreshing for lifestyle and health content.
 src/
 ├── cli/              # CLI tool
 ├── shared/           # Core renderer (used by Web & CLI)
-│   ├── config/themes.ts    # 6 theme definitions
+│   ├── config/themes.ts    # theme definitions
 │   ├── renderer/blocks/    # Block renderers (heading, paragraph, code...)
 │   └── parser/markdown.ts  # Markdown parser
 ├── config/sample.ts  # Default markdown content

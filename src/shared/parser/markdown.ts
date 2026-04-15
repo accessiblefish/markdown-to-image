@@ -56,6 +56,12 @@ function extractBlocks(node: Element, blocks: Block[]): void {
       break
 
     case 'p': {
+      const standaloneImage = extractStandaloneImage(node)
+      if (standaloneImage) {
+        blocks.push(standaloneImage)
+        break
+      }
+
       const inlineElements = extractInlineElements(node)
       blocks.push({
         type: 'paragraph',
@@ -111,6 +117,15 @@ function extractBlocks(node: Element, blocks: Block[]): void {
       break
     }
 
+    case 'img':
+      blocks.push({
+        type: 'image',
+        content: '',
+        src: node.getAttribute('src') || '',
+        alt: node.getAttribute('alt') || '',
+      })
+      break
+
     case 'div':
     case 'section':
     case 'article':
@@ -126,6 +141,24 @@ function extractBlocks(node: Element, blocks: Block[]): void {
           content: node.textContent,
         })
       }
+  }
+}
+
+function extractStandaloneImage(node: Element): Block | null {
+  if (node.children.length !== 1) {
+    return null
+  }
+
+  const child = node.children[0]
+  if (child.tagName.toLowerCase() !== 'img') {
+    return null
+  }
+
+  return {
+    type: 'image',
+    content: '',
+    src: child.getAttribute('src') || '',
+    alt: child.getAttribute('alt') || '',
   }
 }
 

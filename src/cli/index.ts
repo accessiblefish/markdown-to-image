@@ -29,7 +29,7 @@ if (typeof globalThis.OffscreenCanvas === 'undefined') {
   globalThis.OffscreenCanvas = OffscreenCanvasPolyfill as any
 }
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from 'fs'
 import { resolve, dirname, basename, extname } from 'path'
 import { program } from 'commander'
 import type { Canvas } from 'skia-canvas'
@@ -38,6 +38,7 @@ import {
   createLayoutConfig,
   type LayoutConfig,
   type ThemeKey,
+  THEMES,
 } from '../shared'
 import { cliAdapter } from './adapter'
 import { SAMPLE_MARKDOWN } from '../config/sample'
@@ -52,6 +53,8 @@ interface CLIOptions {
   quality?: number
   format?: 'png' | 'jpg' | 'webp'
 }
+
+const AVAILABLE_THEMES = Object.keys(THEMES) as ThemeKey[]
 
 const logo = `
 ┌─────────────────────────────────────┐
@@ -79,6 +82,11 @@ async function saveCanvas(
  */
 async function processInput(options: CLIOptions): Promise<void> {
   const startTime = performance.now()
+
+  if (options.theme && !AVAILABLE_THEMES.includes(options.theme)) {
+    console.error(`✗ Error: Invalid theme "${options.theme}". Available themes: ${AVAILABLE_THEMES.join(', ')}`)
+    process.exit(1)
+  }
 
   // 确定输入内容
   let markdown: string
@@ -127,12 +135,11 @@ async function processInput(options: CLIOptions): Promise<void> {
     }
   }
 
-  // 检查目录是否可写
+  // 检查目录是否可写。只使用 fs API，避免 Bun 删除和 unlink 重复执行。
   try {
-    const testFile = resolve(outputDir, '.write-test')
+    const testFile = resolve(outputDir, `.write-test-${process.pid}-${Date.now()}`)
     writeFileSync(testFile, '')
-    // @ts-ignore
-    Bun?.file(testFile).delete?.() ?? require('fs').unlinkSync(testFile)
+    rmSync(testFile, { force: true })
   } catch (err) {
     console.error(`✗ Error: Output directory is not writable: ${outputDir}`)
     process.exit(1)
@@ -144,6 +151,7 @@ async function processInput(options: CLIOptions): Promise<void> {
     pageWidth: options.width || 1080,
     pageHeight: options.height || 1440,
     fontSize: options.fontSize || 30,
+    assetBasePath: options.input ? dirname(resolve(options.input)) : process.cwd(),
   })
 
   // 渲染页面
@@ -189,7 +197,7 @@ async function main(): Promise<void> {
     .version('1.0.0')
     .argument('[input]', 'Input Markdown file path (uses sample if not provided)')
     .option('-o, --output <path>', 'Output image path (optional)')
-    .option('-t, --theme <theme>', 'Theme: light, dark, sepia, neon, mint, editorial', 'editorial')
+    .option('-t, --theme <theme>', 'Theme: editorial, mint', 'editorial')
     .option('-W, --width <number>', 'Page width in pixels', '1080')
     .option('-H, --height <number>', 'Page height in pixels', '1440')
     .option('-f, --font-size <number>', 'Base font size', '30')

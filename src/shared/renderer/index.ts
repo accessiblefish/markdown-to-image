@@ -17,6 +17,7 @@ import {
   renderBlockQuote,
   renderList,
   renderTable,
+  renderImage,
   renderHorizontalRule,
 } from './blocks'
 
@@ -107,7 +108,24 @@ export async function renderToPages(
       }
 
       case 'table': {
-        context.currentY = renderTable(ctx, block, config, theme, context.currentY)
+        const result = renderTable(ctx, block, config, theme, context.currentY, startNewPage)
+        ctx = result.ctx
+        context.currentY = result.currentY
+        break
+      }
+
+      case 'image': {
+        const result = await renderImage(
+          ctx,
+          block,
+          config,
+          theme,
+          context.currentY,
+          adapter,
+          startNewPage
+        )
+        ctx = result.ctx
+        context.currentY = result.currentY
         break
       }
 
