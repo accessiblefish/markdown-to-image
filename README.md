@@ -2,7 +2,7 @@
 
 Convert Markdown to beautiful, social-media-ready images. No browser required.
 
-**Web UI + CLI** · **2 Reading Themes** · **Typography-First** · **Multi-page Export**
+**Web UI + CLI** · **3 Reading Themes** · **Typography-First** · **Multi-page Export**
 
 ![Bun](https://img.shields.io/badge/Bun-1.0%2B-black?logo=bun)
 
@@ -53,11 +53,12 @@ That's it. Open `output.png` or visit `http://localhost:3000`.
 # Custom output name
 ./md2img doc.md -o my-doc.png
 
-# Editorial theme (default), JPG format
+# Inspection theme (default), JPG format
 ./md2img doc.md -F jpg
 
 # Other theme
 ./md2img doc.md -t mint        # Quiet blog-inspired mint
+./md2img doc.md -t inspection  # Industrial inspection-report style
 
 # After "bun link", use anywhere
 md2img file.md
@@ -68,7 +69,7 @@ md2img file.md
 | Flag | Description | Default |
 |------|-------------|---------|
 | `-o, --output` | Output path (optional) | Based on input filename |
-| `-t, --theme` | editorial / mint | editorial |
+| `-t, --theme` | editorial / mint / inspection | inspection |
 | `-W, --width` | Page width (px) | 1080 |
 | `-H, --height` | Page height (px) | 1440 |
 | `-f, --font-size` | Base font size | 30 |
@@ -110,7 +111,7 @@ The **Editorial** theme includes a data stream background pattern (vertical mono
 
 ## Themes
 
-### 1. Editorial (Default)
+### 1. Editorial
 Inspired by editorial design and magazines. Cream background with data stream pattern.
 - **Best for:** Long-form articles, essays, professional content
 - **Colors:** Warm cream (#F5F0E8) with terracotta accents
@@ -121,6 +122,12 @@ Inspired by calm personal blog templates with a quiet mint-tinted reading surfac
 - **Best for:** Blog posts, essays, notes, personal publishing
 - **Colors:** Soft mint gray, muted green accents, low-noise page background
 - **Feel:** Clean, restrained, and optimized for reading comfort
+
+### 3. Inspection (Default)
+Inspired by factory inspection sheets, technical reports, and stamped quality-control cards.
+- **Best for:** Spec sheets, reports, checklists, process docs, structured technical content
+- **Colors:** Off-white paper, graphite text, steel-gray rules, deep seal-red accents
+- **Feel:** Precise, industrial, and dense without looking noisy
 
 ---
 

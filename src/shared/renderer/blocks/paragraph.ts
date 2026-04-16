@@ -5,7 +5,7 @@
 import { prepareWithSegments, layoutNextLine, type LayoutCursor } from '@chenglou/pretext'
 import type { Block, LayoutConfig, Theme } from '../../types'
 import { getBodyFont, getInlineCodeFont } from '../utils/fonts'
-import { wrapInlineElements, renderWrappedInlineElements } from '../utils/inline-renderer'
+import { wrapInlineElements, renderInlineCodeToken } from '../utils/inline-renderer'
 
 export interface ParagraphResult {
   ctx: CanvasRenderingContext2D
@@ -48,31 +48,17 @@ export function renderParagraph(
         } else if (item.element.type === 'em') {
           ctx.font = getBodyFont(config).replace(/\d+px/, (size: string) => `italic ${size}`)
         } else if (item.element.type === 'code') {
-          const codeFont = getInlineCodeFont(config)
-          ctx.font = codeFont
-          const text = item.element.content
-          const textWidth = ctx.measureText(text).width
-          const paddingX = 6
-          const paddingY = 3
-          const x = config.padding.left + item.x
-          const y = currentY
-
-          // 绘制背景（圆角矩形）
-          ctx.fillStyle = theme.inlineCodeBg
-          ctx.beginPath()
-          // @ts-ignore
-          if (ctx.roundRect) {
-            ctx.roundRect(x - paddingX, y - config.fontSize * 0.75 - paddingY, textWidth + paddingX * 2, config.fontSize * 0.73 + paddingY * 2, 6)
-          } else {
-            ctx.fillRect(x - paddingX, y - config.fontSize * 0.75 - paddingY, textWidth + paddingX * 2, config.fontSize * 0.73 + paddingY * 2)
-          }
-          // @ts-ignore
-          if (ctx.roundRect) ctx.roundRect(x - paddingX, y - config.fontSize * 0.75 - paddingY, textWidth + paddingX * 2, config.fontSize * 0.73 + paddingY * 2, 6)
-          ctx.fill()
-
-          // 绘制文字
-          ctx.fillStyle = theme.inlineCodeText
-          ctx.font = codeFont
+          renderInlineCodeToken(
+            ctx,
+            item.element.content,
+            config.padding.left + item.x,
+            currentY,
+            config,
+            theme
+          )
+          ctx.fillStyle = theme.text
+          ctx.font = getBodyFont(config)
+          continue
         } else if (item.element.type === 'link') {
           ctx.fillStyle = theme.link
         }

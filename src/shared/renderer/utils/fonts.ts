@@ -37,6 +37,7 @@ export function getCodeFont(config: LayoutConfig): string {
 }
 
 export function getInlineCodeFont(config: LayoutConfig): string {
-  // inline code 使用等宽字体，视觉上比衬线字体大很多，需要显著缩小
-  return `${Math.round(config.fontSize * 0.73)}px "JetBrains Mono", "Fira Code", "SFMono-Regular", Consolas, monospace`
+  // inspection 主题需要与正文更接近的视觉字号，其余主题保留更紧凑的 inline code
+  const scale = config.theme === 'inspection' ? 0.9 : 0.73
+  return `${Math.round(config.fontSize * scale)}px "JetBrains Mono", "Fira Code", "SFMono-Regular", Consolas, monospace`
 }

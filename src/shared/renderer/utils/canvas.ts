@@ -54,12 +54,16 @@ function renderPageGrid(
   config: LayoutConfig,
   theme: Theme,
 ): void {
+  if (theme.fontFamily === "sans" && theme.bg === "#FFFFFF") {
+    return;
+  }
+
   ctx.save();
   ctx.strokeStyle = theme.accent;
-  ctx.globalAlpha = theme.bgPattern ? 0.08 : 0.12;
+  ctx.globalAlpha = theme.bgPattern ? 0.08 : theme.fontFamily === "sans" ? 0.08 : 0.12;
   ctx.lineWidth = 1;
 
-  const spacing = 44;
+  const spacing = theme.fontFamily === "sans" ? 52 : 44;
   for (let x = 40; x < config.pageWidth - 40; x += spacing) {
     ctx.beginPath();
     ctx.moveTo(x, 40);
@@ -173,7 +177,10 @@ export function renderPageFooter(
   textColor: string,
 ): void {
   ctx.fillStyle = textColor;
-  ctx.font = `25px ${fonts.body}`;
+  const footerFont = config.fontFamily === "sans"
+    ? `"SF Mono", "JetBrains Mono", "Fira Code", monospace`
+    : fonts.body;
+  ctx.font = `25px ${footerFont}`;
   ctx.textAlign = "right";
   ctx.fillText(
     `- ${pageNumber} -`,
@@ -211,12 +218,13 @@ export function renderBlockQuote(
   height: number,
   theme: Theme,
 ): void {
+  const isInspection = theme.fontFamily === "sans";
   // 主背景
   ctx.fillStyle = theme.quoteBg;
   ctx.beginPath();
   // @ts-ignore
   if (ctx.roundRect) {
-    ctx.roundRect(x, y, width, height, 12);
+    ctx.roundRect(x, y, width, height, isInspection ? 0 : 12);
   } else {
     ctx.rect(x, y, width, height);
   }
@@ -224,23 +232,29 @@ export function renderBlockQuote(
 
   // 左边强调条
   ctx.fillStyle = theme.quoteBorder;
-  ctx.beginPath();
-  // @ts-ignore
-  if (ctx.roundRect) {
-    ctx.roundRect(x, y + 16, 4, height - 32, 2);
+  if (isInspection) {
+    ctx.fillRect(x, y, width, 6);
   } else {
-    ctx.fillRect(x, y + 16, 4, height - 32);
+    ctx.beginPath();
+    // @ts-ignore
+    if (ctx.roundRect) {
+      ctx.roundRect(x, y + 16, 4, height - 32, 2);
+    } else {
+      ctx.fillRect(x, y + 16, 4, height - 32);
+    }
+    // @ts-ignore
+    if (ctx.roundRect) ctx.roundRect(x, y + 16, 4, height - 32, 2);
+    ctx.fill();
   }
-  // @ts-ignore
-  if (ctx.roundRect) ctx.roundRect(x, y + 16, 4, height - 32, 2);
-  ctx.fill();
 
   // 右上角装饰引号
   ctx.save();
   ctx.globalAlpha = 0.15;
   ctx.fillStyle = theme.quoteBorder;
-  ctx.font = "bold 60px Georgia, serif";
-  ctx.fillText('"', x + width - 50, y + 50);
+  ctx.font = theme.fontFamily === "sans"
+    ? `700 48px "SF Mono", "JetBrains Mono", monospace`
+    : "bold 60px Georgia, serif";
+  ctx.fillText('"', x + width - 50, y + (isInspection ? 60 : 50));
   ctx.restore();
 }
 
@@ -268,7 +282,7 @@ export function renderCodeBlock(
 
   // 顶部装饰条
   ctx.fillStyle = theme.accent;
-  ctx.globalAlpha = 0.6;
+  ctx.globalAlpha = theme.fontFamily === "sans" ? 0.85 : 0.6;
   ctx.beginPath();
   // @ts-ignore
   if (ctx.roundRect) {
@@ -283,7 +297,9 @@ export function renderCodeBlock(
 
   // 三个点装饰（模拟窗口按钮）
   const dotY = y + 14;
-  const dots = ["#FF5F56", "#FFBD2E", "#27C93F"];
+  const dots = theme.fontFamily === "sans"
+    ? [theme.accent, theme.codeText, theme.textMuted]
+    : ["#FF5F56", "#FFBD2E", "#27C93F"];
   dots.forEach((color, i) => {
     ctx.fillStyle = color;
     ctx.beginPath();
@@ -302,7 +318,22 @@ export function renderHorizontalRule(
   width: number,
   theme: Theme,
 ): void {
+  const isInspection = theme.fontFamily === "sans";
   const centerX = x + width / 2;
+
+  if (isInspection) {
+    ctx.strokeStyle = theme.tableBorder || theme.border;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, y - 4);
+    ctx.lineTo(x + width, y - 4);
+    ctx.moveTo(x, y + 4);
+    ctx.lineTo(x + width, y + 4);
+    ctx.stroke();
+    ctx.fillStyle = theme.accent;
+    ctx.fillRect(centerX - 24, y - 8, 48, 16);
+    return;
+  }
 
   // 中心装饰点
   ctx.fillStyle = theme.accent;

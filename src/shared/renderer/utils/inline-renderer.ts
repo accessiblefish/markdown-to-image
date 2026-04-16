@@ -124,6 +124,43 @@ export function renderInlineElement(
   }
 }
 
+export function renderInlineCodeToken(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  baselineY: number,
+  config: LayoutConfig,
+  theme: Theme
+): void {
+  const codeFont = getInlineCodeFont(config)
+  ctx.font = codeFont
+
+  const metrics = ctx.measureText(text)
+  const textWidth = metrics.width
+  const ascent = metrics.actualBoundingBoxAscent || config.fontSize * 0.52
+  const descent = metrics.actualBoundingBoxDescent || config.fontSize * 0.16
+  const paddingX = 6
+  const paddingY = 4
+  const boxTop = baselineY - ascent - paddingY
+  const boxHeight = ascent + descent + paddingY * 2
+
+  ctx.fillStyle = theme.inlineCodeBg
+  ctx.beginPath()
+  // @ts-ignore
+  if (ctx.roundRect) {
+    ctx.roundRect(x - paddingX, boxTop, textWidth + paddingX * 2, boxHeight, 6)
+  } else {
+    ctx.fillRect(x - paddingX, boxTop, textWidth + paddingX * 2, boxHeight)
+  }
+  // @ts-ignore
+  if (ctx.roundRect) ctx.roundRect(x - paddingX, boxTop, textWidth + paddingX * 2, boxHeight, 6)
+  ctx.fill()
+
+  ctx.fillStyle = theme.inlineCodeText
+  ctx.font = codeFont
+  ctx.fillText(text, x, baselineY)
+}
+
 export function getInlineElementWidth(
   ctx: CanvasRenderingContext2D,
   element: InlineElement,

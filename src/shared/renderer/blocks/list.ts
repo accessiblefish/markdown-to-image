@@ -5,7 +5,7 @@
 import type { Block, LayoutConfig, Theme, ListItem } from '../../types'
 import { BULLET_WIDTH, BULLET_MARGIN } from '../../config/constants'
 import { getBodyFont, getInlineCodeFont } from '../utils/fonts'
-import { wrapInlineElements } from '../utils/inline-renderer'
+import { wrapInlineElements, renderInlineCodeToken } from '../utils/inline-renderer'
 
 export interface ListResult {
   ctx: CanvasRenderingContext2D
@@ -105,33 +105,14 @@ function renderListItem(
         } else if (lineItem.element.type === 'em') {
           ctx.font = getBodyFont(config).replace(/\d+px/, (size: string) => `italic ${size}`)
         } else if (lineItem.element.type === 'code') {
-          const codeFont = getInlineCodeFont(config)
-          ctx.font = codeFont
-          const text = lineItem.element.content
-          const textWidth = ctx.measureText(text).width
-          const paddingX = 6
-          const paddingY = 3
-          const x = textX + lineItem.x
-          const y = currentY
-
-          // 绘制背景（圆角矩形）
-          ctx.fillStyle = theme.inlineCodeBg
-          ctx.beginPath()
-          // @ts-ignore
-          if (ctx.roundRect) {
-            ctx.roundRect(x - paddingX, y - config.fontSize * 0.75 - paddingY, textWidth + paddingX * 2, config.fontSize * 0.73 + paddingY * 2, 6)
-          } else {
-            ctx.fillRect(x - paddingX, y - config.fontSize * 0.75 - paddingY, textWidth + paddingX * 2, config.fontSize * 0.73 + paddingY * 2)
-          }
-          // @ts-ignore
-          if (ctx.roundRect) ctx.roundRect(x - paddingX, y - config.fontSize * 0.75 - paddingY, textWidth + paddingX * 2, config.fontSize * 0.73 + paddingY * 2, 6)
-          ctx.fill()
-
-          // 绘制文字
-          ctx.fillStyle = theme.inlineCodeText
-          ctx.font = codeFont
-
-          ctx.fillText(lineItem.element.content, textX + lineItem.x, currentY)
+          renderInlineCodeToken(
+            ctx,
+            lineItem.element.content,
+            textX + lineItem.x,
+            currentY,
+            config,
+            theme
+          )
           ctx.fillStyle = theme.text
           continue
         } else if (lineItem.element.type === 'link') {

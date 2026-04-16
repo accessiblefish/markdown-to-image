@@ -38,6 +38,16 @@ function getSyntaxColor(tokenType: string, isDark: boolean): string {
   return colors[tokenType] || colors.default
 }
 
+function isDarkHexColor(hex: string): boolean {
+  const normalized = hex.replace('#', '').trim()
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return false
+  const r = parseInt(normalized.slice(0, 2), 16)
+  const g = parseInt(normalized.slice(2, 4), 16)
+  const b = parseInt(normalized.slice(4, 6), 16)
+  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+  return luminance < 0.45
+}
+
 function tokenizeCode(code: string, language?: string): Array<{ text: string; type: string }> {
   const tokens: Array<{ text: string; type: string }> = []
   const lines = code.split('\n')
@@ -101,6 +111,7 @@ export function renderCode(
   const code = block.content
   const language = block.language
   const lines = code.split('\n')
+  const isInspection = config.theme === 'inspection'
   
   const contentWidth = config.pageWidth - config.padding.left - config.padding.right
   const codeWidth = contentWidth
@@ -130,13 +141,13 @@ export function renderCode(
     ctx.fillText(language, codeX + codeWidth - CODE_PADDING.x, codeY + 20)
     ctx.textAlign = 'left'
   }
-  
+
   // 渲染代码内容（增加顶部间距给装饰条留空间）
   ctx.font = codeFont
-  const isDark = theme.codeBg === '#1e293b' || theme.codeBg === '#2d2a26' || theme.codeBg === '#0F0F23' || theme.codeBg === '#2C3E2C'
+  const isDark = isDarkHexColor(theme.codeBg)
   
   // 顶部装饰条占用了一些空间，所以代码内容向下偏移
-  const topDecorationSpace = 32
+  const topDecorationSpace = isInspection ? 40 : 32
   let y = codeY + CODE_PADDING.y + topDecorationSpace + lineHeight * 0.8
   let maxLines = Math.floor((codeHeight - CODE_PADDING.y * 2) / lineHeight)
   

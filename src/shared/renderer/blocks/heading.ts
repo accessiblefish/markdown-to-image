@@ -59,6 +59,7 @@ export function renderHeading(
   const level = block.level || 1
   const font = getHeadingFont(config, level)
   const text = block.content
+  const isInspection = config.theme === 'inspection'
   
   ctx.font = font
   ctx.fillStyle = theme.textHeading
@@ -76,25 +77,63 @@ export function renderHeading(
     }
     
     // 重新设置字体（确保新页面的 ctx 有正确设置）
-    ctx.font = font
+    const posterFont = isInspection
+      ? `800 88px "SF Mono", "JetBrains Mono", "Fira Code", monospace`
+      : font
+    ctx.font = posterFont
     ctx.fillStyle = theme.textHeading
     
-    const posterMaxWidth = Math.min(contentWidth, config.pageWidth * 0.74)
-    const lines = getPosterLines(text, font, posterMaxWidth)
-    const h1LineHeight = 168
-    const blockTop = 380
-    const startX = config.padding.left + 38
-    let textY = blockTop
+    const posterMaxWidth = Math.min(contentWidth, config.pageWidth * (isInspection ? 0.68 : 0.74))
+    const lines = getPosterLines(text, posterFont, posterMaxWidth)
 
-    if (lines.length > 0) {
-      for (const line of lines) {
-        ctx.fillText(line.text, startX, textY)
-        textY += h1LineHeight
+    if (isInspection) {
+      const frameX = config.padding.left
+      const frameY = 248
+      const frameWidth = contentWidth
+      const frameHeight = 520
+      const startX = frameX + 56
+      const blockTop = frameY + 210
+      const h1LineHeight = 126
+      let textY = blockTop
+
+      ctx.save()
+      ctx.strokeStyle = theme.textHeading
+      ctx.lineWidth = 1.5
+      ctx.strokeRect(frameX, frameY, frameWidth, frameHeight)
+      ctx.strokeStyle = theme.tableBorder || theme.border
+      ctx.lineWidth = 1
+      ctx.strokeRect(frameX + 14, frameY + 14, frameWidth - 28, frameHeight - 28)
+      ctx.restore()
+
+      ctx.font = posterFont
+      ctx.fillStyle = theme.textHeading
+
+      if (lines.length > 0) {
+        for (const line of lines) {
+          ctx.fillText(line.text, startX, textY)
+          textY += h1LineHeight
+        }
+        currentY = frameY + frameHeight
+      } else {
+        ctx.fillText(text, startX, blockTop)
+        currentY = frameY + frameHeight
       }
-      currentY = textY
     } else {
-      currentY = blockTop
-      ctx.fillText(text, startX, currentY)
+      const h1LineHeight = 168
+      const blockTop = 380
+      const startX = config.padding.left + 38
+      let textY = blockTop
+
+      if (lines.length > 0) {
+        for (const line of lines) {
+          ctx.fillText(line.text, startX, textY)
+          textY += h1LineHeight
+        }
+        currentY = textY
+      } else {
+        currentY = blockTop
+        ctx.fillText(text, startX, currentY)
+      }
     }
     
     // H1 后添加下边距，然后强制换页
@@ -130,8 +169,25 @@ export function renderHeading(
   currentY += marginTop
   
   // 重新设置字体（确保换页后的 ctx 有正确设置）
-  ctx.font = font
+  ctx.font = isInspection && level <= 3
+    ? `700 ${level === 2 ? 32 : 24}px "SF Mono", "JetBrains Mono", monospace`
+    : font
   ctx.fillStyle = theme.textHeading
+
+  if (isInspection && level === 2) {
+    const barY = currentY - 18
+    const textX = config.padding.left + 30
+    ctx.fillRect(config.padding.left, barY, 14, 56)
+    ctx.fillText(text, textX, currentY + 24)
+    ctx.strokeStyle = theme.tableBorder || theme.border
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(textX, currentY + 40)
+    ctx.lineTo(config.pageWidth - config.padding.right, currentY + 40)
+    ctx.stroke()
+    currentY += 72
+    return { ctx, currentY: currentY + 8 }
+  }
   
   if (textWidth > contentWidth) {
     const prepared = prepareWithSegments(text, font)

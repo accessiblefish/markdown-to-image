@@ -2,13 +2,14 @@
  * 核心类型定义 - 共享
  */
 
-export type ThemeKey = 'mint' | 'editorial'
+export type ThemeKey = 'mint' | 'editorial' | 'inspection'
 
 export interface Theme {
   bg: string
   bgGradient?: string[] // 渐变背景色数组 [start, end]
   decorativeColor?: string // 装饰元素颜色
   bgPattern?: string // 背景图案文字（如 "AI"）
+  fontFamily?: FontFamilyKey
   text: string
   textHeading: string
   textMuted: string

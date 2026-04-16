@@ -7,7 +7,7 @@ import type { Block, LayoutConfig, Theme } from '../../types'
 import { renderBlockQuote as renderBlockQuoteBackground } from '../utils/canvas'
 import { QUOTE_PADDING } from '../../config/constants'
 import { getBodyFont, getInlineCodeFont } from '../utils/fonts'
-import { wrapInlineElements } from '../utils/inline-renderer'
+import { wrapInlineElements, renderInlineCodeToken } from '../utils/inline-renderer'
 
 export interface BlockQuoteResult {
   ctx: CanvasRenderingContext2D
@@ -24,6 +24,7 @@ export function renderBlockQuote(
 ): BlockQuoteResult {
   const contentWidth = config.pageWidth - config.padding.left - config.padding.right - QUOTE_PADDING * 2
   const lineHeight = config.lineHeight
+  const isInspection = config.theme === 'inspection'
   
   // 计算引用块高度
   let quoteHeight = QUOTE_PADDING * 2
@@ -62,9 +63,15 @@ export function renderBlockQuote(
   const quoteWidth = config.pageWidth - config.padding.left - config.padding.right
   
   renderBlockQuoteBackground(ctx, quoteX, quoteY, quoteWidth, quoteHeight, theme)
+
+  if (isInspection) {
+    ctx.strokeStyle = theme.tableBorder || theme.border
+    ctx.lineWidth = 1
+    ctx.strokeRect(quoteX + 18, quoteY + 18, quoteWidth - 36, quoteHeight - 36)
+  }
   
   // 渲染引用内容
-  let textY = quoteY + QUOTE_PADDING + lineHeight * 0.8
+  let textY = quoteY + QUOTE_PADDING + (isInspection ? 8 : 0) + lineHeight * 0.8
   
   if (block.inlineElements && block.inlineElements.length > 0) {
     const wrapped = wrapInlineElements(ctx, block.inlineElements, contentWidth, config, theme)
@@ -81,31 +88,17 @@ export function renderBlockQuote(
         } else if (item.element.type === 'em') {
           ctx.font = getBodyFont(config).replace(/\d+px/, (size: string) => `italic ${size}`)
         } else if (item.element.type === 'code') {
-          const codeFont = getInlineCodeFont(config)
-          ctx.font = codeFont
-          const text = item.element.content
-          const textWidth = ctx.measureText(text).width
-          const paddingX = 6
-          const paddingY = 3
-          const x = baseX + item.x
-          const y = textY
-
-          // 绘制背景（圆角矩形）
-          ctx.fillStyle = theme.inlineCodeBg
-          ctx.beginPath()
-          // @ts-ignore
-          if (ctx.roundRect) {
-            ctx.roundRect(x - paddingX, y - config.fontSize * 0.75 - paddingY, textWidth + paddingX * 2, config.fontSize * 0.73 + paddingY * 2, 6)
-          } else {
-            ctx.fillRect(x - paddingX, y - config.fontSize * 0.75 - paddingY, textWidth + paddingX * 2, config.fontSize * 0.73 + paddingY * 2)
-          }
-          // @ts-ignore
-          if (ctx.roundRect) ctx.roundRect(x - paddingX, y - config.fontSize * 0.75 - paddingY, textWidth + paddingX * 2, config.fontSize * 0.73 + paddingY * 2, 6)
-          ctx.fill()
-
-          // 绘制文字
-          ctx.fillStyle = theme.inlineCodeText
-          ctx.font = codeFont
+          renderInlineCodeToken(
+            ctx,
+            item.element.content,
+            baseX + item.x,
+            textY,
+            config,
+            theme
+          )
+          ctx.fillStyle = theme.text
+          ctx.font = getBodyFont(config)
+          continue
         } else if (item.element.type === 'link') {
           ctx.fillStyle = theme.link
         }

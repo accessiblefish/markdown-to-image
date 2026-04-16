@@ -45,23 +45,27 @@ export async function renderToPages(
   
   const blocks = await parseMarkdownToBlocks(markdown, adapter)
   const theme = getTheme(config.theme)
+  const resolvedConfig: LayoutConfig = {
+    ...config,
+    fontFamily: config.fontFamily ?? theme.fontFamily,
+  }
 
   const context: PageContext = {
     pages: [],
     currentCanvas: null,
     currentCtx: null,
-    currentY: config.padding.top,
+    currentY: resolvedConfig.padding.top,
   }
 
   function startNewPage(): { ctx: CanvasRenderingContext2D; y: number } {
-    const { canvas, ctx } = createCanvas(config.pageWidth, config.pageHeight)
-    renderBackground(ctx, config, theme)
-    renderPageFooter(ctx, config, context.pages.length + 1, FONTS, theme.textMuted)
+    const { canvas, ctx } = createCanvas(resolvedConfig.pageWidth, resolvedConfig.pageHeight)
+    renderBackground(ctx, resolvedConfig, theme)
+    renderPageFooter(ctx, resolvedConfig, context.pages.length + 1, FONTS, theme.textMuted)
 
     context.pages.push(canvas)
     context.currentCanvas = canvas
     context.currentCtx = ctx
-    context.currentY = config.padding.top
+    context.currentY = resolvedConfig.padding.top
 
     return { ctx, y: context.currentY }
   }
@@ -72,28 +76,28 @@ export async function renderToPages(
   for (const block of blocks) {
     switch (block.type) {
       case 'heading': {
-        const result = renderHeading(ctx, block, config, theme, context.currentY, startNewPage)
+        const result = renderHeading(ctx, block, resolvedConfig, theme, context.currentY, startNewPage)
         ctx = result.ctx
         context.currentY = result.currentY
         break
       }
 
       case 'paragraph': {
-        const result = renderParagraph(ctx, block, config, theme, context.currentY, startNewPage)
+        const result = renderParagraph(ctx, block, resolvedConfig, theme, context.currentY, startNewPage)
         ctx = result.ctx
         context.currentY = result.currentY
         break
       }
 
       case 'blockquote': {
-        const result = renderBlockQuote(ctx, block, config, theme, context.currentY, startNewPage)
+        const result = renderBlockQuote(ctx, block, resolvedConfig, theme, context.currentY, startNewPage)
         ctx = result.ctx
         context.currentY = result.currentY
         break
       }
 
       case 'code': {
-        const result = renderCode(ctx, block, config, theme, context.currentY, startNewPage)
+        const result = renderCode(ctx, block, resolvedConfig, theme, context.currentY, startNewPage)
         ctx = result.ctx
         context.currentY = result.currentY
         break
@@ -101,14 +105,14 @@ export async function renderToPages(
 
       case 'list':
       case 'taskList': {
-        const result = renderList(ctx, block, config, theme, context.currentY, startNewPage)
+        const result = renderList(ctx, block, resolvedConfig, theme, context.currentY, startNewPage)
         ctx = result.ctx
         context.currentY = result.currentY
         break
       }
 
       case 'table': {
-        const result = renderTable(ctx, block, config, theme, context.currentY, startNewPage)
+        const result = renderTable(ctx, block, resolvedConfig, theme, context.currentY, startNewPage)
         ctx = result.ctx
         context.currentY = result.currentY
         break
@@ -118,7 +122,7 @@ export async function renderToPages(
         const result = await renderImage(
           ctx,
           block,
-          config,
+          resolvedConfig,
           theme,
           context.currentY,
           adapter,
@@ -130,7 +134,7 @@ export async function renderToPages(
       }
 
       case 'hr': {
-        const result = renderHorizontalRule(ctx, config, theme, context.currentY, startNewPage)
+        const result = renderHorizontalRule(ctx, resolvedConfig, theme, context.currentY, startNewPage)
         ctx = result.ctx
         context.currentY = result.currentY
         break
@@ -155,7 +159,7 @@ export function createLayoutConfig(options: Partial<LayoutConfig> = {}): LayoutC
     padding: PADDING,
     fontSize,
     lineHeight,
-    theme: 'editorial',
+    theme: 'inspection',
     ...options,
   }
 }

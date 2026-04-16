@@ -85,7 +85,13 @@ function calculateColumnWidths(
 
   const preferredTotal = preferredWidths.reduce((sum, width) => sum + width, 0)
   if (preferredTotal <= maxTableWidth) {
-    return preferredWidths
+    const extraWidth = maxTableWidth - preferredTotal
+    const growPerColumn = extraWidth / colCount
+    return preferredWidths.map((width, index) => (
+      index === colCount - 1
+        ? width + growPerColumn + (maxTableWidth - (preferredTotal + growPerColumn * colCount))
+        : width + growPerColumn
+    ))
   }
 
   const minimumTotal = minimumWidths.reduce((sum, width) => sum + width, 0)
@@ -170,6 +176,7 @@ export function renderTable(
   startNewPage: () => { ctx: CanvasRenderingContext2D; y: number }
 ): { ctx: CanvasRenderingContext2D; currentY: number } {
   const rows = block.rows || []
+  const isInspection = config.theme === 'inspection'
   if (rows.length === 0) {
     return { ctx, currentY }
   }
@@ -208,12 +215,22 @@ export function renderTable(
         y,
         colWidth,
         rowHeight,
-        isHeader ? theme.quoteBg : 'rgba(255,255,255,0.18)',
+        isHeader
+          ? (isInspection ? "#E5E7EB" : theme.quoteBg)
+          : (isInspection
+            ? theme.quoteBg
+            : 'rgba(255,255,255,0.18)'),
         theme.tableBorder || theme.border
       )
 
-      ctx.fillStyle = isHeader ? theme.textHeading : theme.text
-      ctx.font = isHeader ? getBodyFont(config).replace(/\d+px/, (size: string) => `bold ${size}`) : font
+      ctx.fillStyle = isHeader
+        ? (isInspection ? theme.textHeading : theme.textHeading)
+        : theme.text
+      ctx.font = isHeader
+        ? (isInspection
+          ? `700 ${Math.round(config.fontSize * 0.82)}px "SF Mono", "JetBrains Mono", monospace`
+          : getBodyFont(config).replace(/\d+px/, (size: string) => `bold ${size}`))
+        : font
 
       let textY = y + CELL_PADDING_Y + config.lineHeight * 0.8
       for (const line of lines) {
